@@ -11,7 +11,6 @@ import { CircleLoader } from 'react-spinners';
 import { RegistrationModal } from './registration';
 import NotFoundPage from './pages/NotFoundPage';
 import ErrorBoundary from "./components/ErrorBoundry/ErrorBoundry";
-import ScreenBackground from './ScreenWallpaper';
 
 const RegistrationModalFromContext = () => {
   const { isModalOpen, closeModal } = useAuth();
@@ -38,7 +37,6 @@ const AppContent = () => {
 
   return (
       <div className="App">
-        <ScreenBackground /> {/* Наш статичный фон */}
         <Header />
 
         <main className='main'>
