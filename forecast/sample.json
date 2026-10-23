@@ -1,0 +1,10 @@
+{
+  "as_of": "2026-09-30",
+  "opening_balance": 41200000,
+  "history": [
+    {"date": "2026-09-01", "irregular_in": 35000000, "irregular_out": 8000000}
+  ],
+  "scheduled": [
+    {"date": "2026-10-05", "amount": 18000000, "is_income": false, "category": "зарплата"}
+  ]
+}

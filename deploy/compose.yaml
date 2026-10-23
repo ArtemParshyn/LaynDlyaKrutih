@@ -1,0 +1,19 @@
+services:
+  gateway:
+    build: ../gateway
+    ports:
+      - "8080:8080"
+    env_file: ../.env
+
+  ledger:
+    build: ../ledger
+    env_file: ../.env
+
+  planning:
+    build: ../planning
+    env_file: ../.env
+
+  forecast:
+    build: ../forecast
+    expose:
+      - "8000"
