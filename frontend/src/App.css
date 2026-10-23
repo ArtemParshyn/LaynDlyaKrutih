@@ -1,0 +1,664 @@
+/* ============ @property — регистрируем переменные для анимации ============ */
+@property --bg { syntax: '<color>'; inherits: true; initial-value: #06120e; }
+@property --text { syntax: '<color>'; inherits: true; initial-value: #f0fdf4; }
+@property --text-muted { syntax: '<color>'; inherits: true; initial-value: rgba(240, 253, 244, 0.65); }
+@property --text-faint { syntax: '<color>'; inherits: true; initial-value: rgba(240, 253, 244, 0.38); }
+@property --accent { syntax: '<color>'; inherits: true; initial-value: #a3e635; }
+@property --accent-2 { syntax: '<color>'; inherits: true; initial-value: #34d399; }
+@property --surface { syntax: '<color>'; inherits: true; initial-value: rgba(16, 32, 25, 0.72); }
+@property --surface-strong { syntax: '<color>'; inherits: true; initial-value: rgba(20, 40, 31, 0.97); }
+@property --surface-input { syntax: '<color>'; inherits: true; initial-value: rgba(6, 18, 14, 0.65); }
+@property --surface-header { syntax: '<color>'; inherits: true; initial-value: rgba(6, 18, 14, 0.78); }
+@property --surface-button { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.15); }
+@property --surface-button-hover { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.3); }
+@property --border { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.26); }
+@property --border-strong { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.52); }
+@property --border-soft { syntax: '<color>'; inherits: true; initial-value: rgba(255, 255, 255, 0.09); }
+@property --shadow-hover { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.4); }
+@property --shadow-accent { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.22); }
+@property --shadow-accent-strong { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.42); }
+@property --overlay { syntax: '<color>'; inherits: true; initial-value: rgba(0, 0, 0, 0.6); }
+@property --error { syntax: '<color>'; inherits: true; initial-value: #f43f5e; }
+@property --skeleton-1 { syntax: '<color>'; inherits: true; initial-value: rgba(255, 255, 255, 0.05); }
+@property --skeleton-2 { syntax: '<color>'; inherits: true; initial-value: rgba(255, 255, 255, 0.12); }
+@property --scrollbar-thumb { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.28); }
+@property --scrollbar-thumb-hover { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.55); }
+@property --surface-input-hover { syntax: '<color>'; inherits: true; initial-value: rgba(16, 32, 25, 0.82); }
+@property --surface-input-focus { syntax: '<color>'; inherits: true; initial-value: rgba(20, 40, 31, 0.95); }
+@property --surface-button-avatar { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.2); }
+@property --surface-button-avatar-hover { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.38); }
+@property --surface-logout { syntax: '<color>'; inherits: true; initial-value: rgba(255, 255, 255, 0.07); }
+@property --border-avatar { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.32); }
+
+/* ============ ЦВЕТОВЫЕ ПЕРЕМЕННЫЕ — ТЁМНАЯ ТЕМА (default) ============ */
+:root {
+  --bg: #06120e;
+  --text: #f0fdf4;
+  --text-muted: rgba(240, 253, 244, 0.65);
+  --text-faint: rgba(240, 253, 244, 0.38);
+
+  --accent: #a3e635;
+  --accent-2: #34d399;
+
+  --surface: rgba(16, 32, 25, 0.72);
+  --surface-strong: rgba(20, 40, 31, 0.97);
+  --surface-input: rgba(6, 18, 14, 0.65);
+  --surface-input-hover: rgba(16, 32, 25, 0.82);
+  --surface-input-focus: rgba(20, 40, 31, 0.95);
+  --surface-header: rgba(6, 18, 14, 0.78);
+  --surface-button: rgba(163, 230, 53, 0.15);
+  --surface-button-hover: rgba(163, 230, 53, 0.3);
+  --surface-button-avatar: rgba(163, 230, 53, 0.2);
+  --surface-button-avatar-hover: rgba(163, 230, 53, 0.38);
+  --surface-logout: rgba(255, 255, 255, 0.07);
+
+  --border: rgba(163, 230, 53, 0.26);
+  --border-strong: rgba(163, 230, 53, 0.52);
+  --border-soft: rgba(255, 255, 255, 0.09);
+  --border-avatar: rgba(163, 230, 53, 0.32);
+
+  --overlay: rgba(0, 0, 0, 0.6);
+  --error: #f43f5e;
+
+  --shadow-hover: rgba(163, 230, 53, 0.4);
+  --shadow-accent: rgba(163, 230, 53, 0.22);
+  --shadow-accent-strong: rgba(163, 230, 53, 0.42);
+
+  --skeleton-1: rgba(255, 255, 255, 0.05);
+  --skeleton-2: rgba(255, 255, 255, 0.12);
+
+  --scrollbar-thumb: rgba(163, 230, 53, 0.28);
+  --scrollbar-thumb-hover: rgba(163, 230, 53, 0.55);
+}
+
+/* ============ СВЕТЛАЯ ТЕМА ============ */
+[data-theme="light"] {
+  --bg: #f8fafc;
+  --text: #0f172a;
+  --text-muted: rgba(15, 23, 42, 0.66);
+  --text-faint: rgba(15, 23, 42, 0.38);
+
+  --accent: #65a30d;
+  --accent-2: #059669;
+
+  --surface: rgba(255, 255, 255, 0.88);
+  --surface-strong: rgba(255, 255, 255, 0.99);
+  --surface-input: rgba(237, 238, 248, 0.85);
+  --surface-input-hover: rgba(237, 238, 248, 1);
+  --surface-input-focus: #ffffff;
+  --surface-header: rgba(248, 250, 252, 0.82);
+  --surface-button: rgba(101, 163, 13, 0.08);
+  --surface-button-hover: rgba(101, 163, 13, 0.17);
+  --surface-button-avatar: rgba(101, 163, 13, 0.1);
+  --surface-button-avatar-hover: rgba(101, 163, 13, 0.2);
+  --surface-logout: rgba(0, 0, 0, 0.05);
+
+  --border: rgba(101, 163, 13, 0.18);
+  --border-strong: rgba(101, 163, 13, 0.42);
+  --border-soft: rgba(0, 0, 0, 0.07);
+  --border-avatar: rgba(101, 163, 13, 0.22);
+
+  --overlay: rgba(15, 23, 42, 0.38);
+  --error: #e11d48;
+
+  --shadow-hover: rgba(101, 163, 13, 0.22);
+  --shadow-accent: rgba(101, 163, 13, 0.14);
+  --shadow-accent-strong: rgba(101, 163, 13, 0.28);
+
+  --skeleton-1: rgba(0, 0, 0, 0.05);
+  --skeleton-2: rgba(0, 0, 0, 0.1);
+
+  --scrollbar-thumb: rgba(101, 163, 13, 0.22);
+  --scrollbar-thumb-hover: rgba(101, 163, 13, 0.48);
+}
+
+/* ============ БАЗОВЫЕ СТИЛИ ============ */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  overflow-x: hidden;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.App { text-align: center; min-height: 100vh; position: relative; }
+
+/* ============ ССЫЛКИ ============ */
+/* Вот это правило убирает подчеркивание у всех ссылок */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* ============ HEADER ============ */
+.Header {
+  position: fixed; top: 0; left: 0; width: 100%; height: 70px;
+  background: var(--surface-header); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-soft); color: var(--text); z-index: 50;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 clamp(20px, 5vw, 200px); gap: 10px; box-sizing: border-box;
+}
+.Header-right-group { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.Header-logo { font-size: clamp(14px, 1.5vw, 20px); font-weight: bold; white-space: nowrap; }
+.Header-nav { display: flex; gap: clamp(10px, 2vw, 30px); align-items: center; }
+.Header-nav a { color: var(--text); font-size: clamp(12px, 1.2vw, 16px); white-space: nowrap; transition: color 0.2s ease; }
+.Header-nav a:hover { color: var(--accent-2); }
+.Header-actions { display: flex; align-items: center; gap: 10px; }
+.Header-username { font-size: clamp(12px, 1.2vw, 16px); white-space: nowrap; }
+
+/* ============ ПРОФИЛЬ ============ */
+.profileButton {
+  width: clamp(35px, 4vw, 50px); height: clamp(35px, 4vw, 50px);
+  border-radius: 50%; border: none; padding: 0; background: transparent;
+  cursor: pointer; overflow: hidden; flex-shrink: 0;
+}
+.profileButton:hover { transform: scale(1.05); box-shadow: 0 0 10px var(--shadow-hover); }
+.imageProfile { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* ============ MAIN ============ */
+main {
+  min-height: 100vh; padding-top: 90px; padding-bottom: 100px;
+  padding-left: clamp(10px, 3vw, 40px); padding-right: clamp(10px, 3vw, 40px);
+  box-sizing: border-box; display: flex; flex-direction: column;
+}
+
+/* ============ FOOTER ============ */
+.Footer {
+  color: var(--text); position: fixed; bottom: 0; left: 0; width: 100%;
+  padding: 8px clamp(10px, 3vw, 30px); text-align: center;
+  background: var(--surface-header); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border-soft); z-index: 1; font-size: clamp(11px, 1vw, 14px);
+}
+
+/* ============ ФОН-ВИДЕО ============ */
+.FonVideo {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  object-fit: cover; z-index: -2; pointer-events: none; user-select: none;
+  filter: brightness(28%) saturate(0.7) hue-rotate(140deg);
+  opacity: 0.85; transition: none;
+}
+[data-theme="light"] .FonVideo {
+  filter: brightness(95%) saturate(0.25) hue-rotate(20deg) invert(0.88);
+  opacity: 0.12;
+}
+
+/* ============ КНОПКИ ============ */
+.Button {
+  appearance: none; border: 0; border-radius: 100px;
+  background: var(--surface-button); color: var(--text);
+  padding: clamp(6px, 1vw, 12px) clamp(12px, 2vw, 24px);
+  font-size: clamp(13px, 1.2vw, 16px); min-width: clamp(80px, 10vw, 120px);
+  cursor: pointer; white-space: nowrap;
+}
+.Button:hover { background: var(--surface-button-hover); transform: scale(1.05); box-shadow: 0 0 10px var(--shadow-hover); }
+.Button:active { transform: scale(0.97); }
+.Button:disabled { opacity: 0.5; pointer-events: none; cursor: not-allowed; }
+
+/* ============ МОДАЛКА ============ */
+.RegistrationModal {
+  width: clamp(280px, 90vw, 500px); max-width: 90vw; max-height: 90vh; overflow-y: auto;
+  outline: none; position: relative; background: var(--surface-strong); color: var(--text);
+  z-index: 101; border: none; border-radius: 16px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 20px; gap: 10px;
+}
+.RegistrationModal-overlay {
+  position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: var(--overlay); z-index: 100;
+}
+.RegistrationModal input {
+  width: 100%; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--surface-input); color: var(--text); font-size: 14px;
+  font-family: inherit; outline: none; box-sizing: border-box;
+}
+.RegistrationModal input::placeholder { color: var(--text-faint); }
+.RegistrationModal input:hover { border-color: var(--border-strong); background: var(--surface-input-hover); }
+.RegistrationModal input:focus { border-color: var(--accent); background: var(--surface-input-focus); box-shadow: 0 0 0 3px var(--shadow-accent); }
+
+.RegistrationModal input:-webkit-autofill,
+.RegistrationModal input:-webkit-autofill:hover,
+.RegistrationModal input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text); caret-color: var(--text);
+}
+[data-theme="dark"] .RegistrationModal input:-webkit-autofill,
+:root .RegistrationModal input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px rgba(16, 32, 25, 0.95) inset;
+}
+[data-theme="light"] .RegistrationModal input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+}
+
+.RegistrationModal::-webkit-scrollbar { width: 8px; }
+.RegistrationModal::-webkit-scrollbar-track { background: transparent; }
+.RegistrationModal::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+.RegistrationModal::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+
+/* ============ ТЕКСТ ============ */
+.TextProfile { color: var(--accent); }
+
+/* ============ ПРОФИЛЬ ============ */
+.ProfilePage {
+  max-width: 600px; margin: 0 auto; padding: 20px;
+  display: flex; flex-direction: column; gap: 20px; width: 100%; box-sizing: border-box;
+}
+.ProfileCard {
+  display: flex; position: relative; gap: 20px; max-width: 100%;
+  align-items: center; padding: 24px; background: var(--surface); border-radius: 16px;
+}
+.ProfileCard-logout {
+  position: absolute; top: 12px; right: 12px; width: 32px; height: 32px;
+  border-radius: 50%; border: 1px solid var(--border); background: var(--surface-logout);
+  color: var(--text-muted); font-size: 14px; line-height: 1; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; padding: 0;
+}
+.ProfileCard-logout:hover { background: var(--surface-button-hover); color: var(--text); border-color: var(--accent); transform: scale(1.08); }
+.ProfileCard-logout:active { transform: scale(0.95); }
+.ProfileCard-logout:disabled { opacity: 0.4; cursor: not-allowed; }
+.ProfilePage-avatar { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+
+/* ============ ФОРМА АВАТАРА ============ */
+.ProfilePage-avatarForm {
+  display: flex; flex-direction: column; gap: 16px; padding: 20px;
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: 16px; text-align: left;
+}
+.ProfilePage-avatarForm h2 { margin: 0; font-size: 18px; color: var(--text); }
+.ProfilePage-avatarForm input[type="file"] { display: none; }
+.ProfilePage-avatarForm .file-label {
+  align-self: flex-start; display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 12px 20px; border-radius: 100px;
+  background: var(--surface-button-avatar); color: var(--text);
+  font-size: 14px; cursor: pointer; border: 1px solid var(--border-avatar);
+  white-space: nowrap;
+}
+.ProfilePage-avatarForm .file-label:hover {
+  background: var(--surface-button-avatar-hover);
+  box-shadow: 0 0 12px var(--shadow-accent-strong);
+  transform: scale(1.02);
+}
+.ProfilePage-avatarForm .file-label:active { transform: scale(0.98); }
+.ProfilePage-avatarForm .file-name {
+  font-size: 13px; color: var(--text-muted); word-break: break-all; padding-left: 4px;
+}
+.ProfilePage-avatarForm .Button {
+  align-self: flex-start; display: inline-flex; align-items: center; justify-content: center;
+  min-width: 160px; min-height: 42px;
+}
+.ProfilePage-avatarForm .error-message { color: var(--error); font-size: 13px; margin-top: -4px; }
+
+/* ============ BURGER ============ */
+.BurgerMenu { display: none; position: relative; }
+.BurgerMenu-dropdown {
+  position: absolute; top: 50px; right: 0; min-width: 220px; max-width: 90vw;
+  background: var(--surface-strong); color: var(--text); padding: 12px;
+  border-radius: 12px; border: 1px solid var(--border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  display: flex; flex-direction: column; gap: 8px; z-index: 100; box-sizing: border-box;
+}
+.BurgerMenu-dropdown .Button { width: 100%; text-align: center; justify-content: center; }
+
+@media (max-width: 768px) {
+  .BurgerMenu { display: block; }
+  .Header-desktop-only { display: none; }
+  .Header { height: 60px; padding: 0 15px; }
+}
+@media (max-width: 480px) {
+  .Header { height: 55px; padding: 0 10px; }
+}
+
+/* ============ SKELETON ============ */
+.skeleton, .skeleton-shimmer {
+  background: linear-gradient(90deg, var(--skeleton-1) 0%, var(--skeleton-2) 50%, var(--skeleton-1) 100%);
+  background-size: 200% 100%; animation: shimmer 1.5s infinite linear; border-radius: 6px;
+}
+.skeleton-circle { border-radius: 50%; }
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skeleton-avatar { width: 120px; height: 120px; flex-shrink: 0; border-radius: 50%; }
+.skeleton-title { width: 60%; height: 24px; margin-bottom: 8px; }
+.skeleton-text { width: 80%; height: 16px; margin-bottom: 6px; }
+.skeleton-text-short { width: 40%; height: 16px; }
+
+/* ============ АДАПТИВ ============ */
+@media (max-width: 768px) {
+  .Header-nav { gap: 8px; }
+  main { padding-top: 60px; padding-bottom: 80px; }
+  .Footer { padding: 6px 10px; font-size: 11px; }
+}
+@media (max-width: 480px) {
+  .Header-logo { font-size: 13px; }
+  .Header-nav { gap: 5px; }
+  .Header-nav a { font-size: 11px; }
+  .Header-username { display: none; }
+  main { padding-top: 55px; padding-bottom: 80px; }
+  .RegistrationModal { width: 95vw; padding: 15px; }
+  .ProfileCard { flex-direction: column; text-align: center; }
+  .ProfilePage-avatar { width: 80px; height: 80px; }
+}
+
+/* ============ DASHBOARD (НОВЫЕ СТИЛИ) ============ */
+.DashboardContainer {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.DashboardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+}
+
+.DashboardHeader h1 {
+  margin: 0 0 10px 0;
+  font-size: clamp(24px, 4vw, 36px);
+  color: var(--text);
+}
+
+.DashboardHeader p {
+  margin: 0;
+  color: var(--accent);
+  font-size: clamp(14px, 1.5vw, 18px);
+  font-weight: 500;
+}
+
+/* --- СЕТКА РЕЗУЛЬТАТОВ --- */
+.ResultsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  width: 100%;
+  align-items: start;
+}
+
+.GridCard {
+  grid-column: 2 / 3; /* Карточка справа */
+  grid-row: 1 / 2;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.GridChart {
+  grid-column: 1 / -1; /* График на всю ширину */
+  grid-row: 2 / 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.GridTable {
+  grid-column: 1 / 2; /* Таблица слева */
+  grid-row: 1 / 2;
+  width: 100%;
+  overflow-x: auto; /* Добавляем скролл если таблица широкая */
+}
+
+.GridWarnings {
+  grid-column: 1 / -1;
+  grid-row: 3 / 4;
+}
+/* ============ ПЛАСТИКОВАЯ КАРТОЧКА (ПРЕМИУМ) ============ */
+.plastic-card {
+  width: 100%;
+  max-width: 380px;
+  height: 220px;
+  border-radius: 24px;
+  padding: 24px;
+  box-sizing: border-box;
+
+  /* Глубокий градиент Центр-Инвест */
+  background: linear-gradient(135deg, #00381F 0%, #005A32 50%, #00874A 100%);
+  color: #ffffff;
+
+  /* Многослойная тень + внутренняя подсветка */
+  box-shadow:
+          0 20px 40px rgba(0, 0, 0, 0.4),
+          0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+          0 2px 4px rgba(255, 255, 255, 0.2) inset;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Глянцевый блик */
+.plastic-card::before {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 1;
+  transition: transform 0.4s ease;
+}
+
+/* Золотая полоска снизу */
+.plastic-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; width: 100%; height: 4px;
+  background: linear-gradient(90deg, transparent, #F2C94C, transparent);
+  opacity: 0.8;
+  z-index: 2;
+}
+
+.plastic-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow:
+          0 25px 50px rgba(0, 90, 50, 0.5),
+          0 0 0 1px rgba(242, 201, 76, 0.3) inset,
+          0 2px 4px rgba(255, 255, 255, 0.3) inset;
+}
+
+.plastic-card:hover::before {
+  transform: scale(1.1) translate(5%, 5%);
+}
+
+/* Верхний ряд (Логотип и Чип) */
+.card-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  z-index: 3;
+}
+
+.card-logo {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(4px);
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Золотой чип */
+.card-chip {
+  width: 48px;
+  height: 34px;
+  background: linear-gradient(135deg, #F2C94C 0%, #D4AF37 50%, #B89020 100%);
+  border-radius: 6px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2);
+  position: relative;
+  overflow: hidden;
+}
+/* Полоски на чипе */
+.card-chip::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 10%; right: 10%;
+  height: 2px;
+  background: rgba(0,0,0,0.15);
+  border-top: 1px solid rgba(255,255,255,0.3);
+  border-bottom: 1px solid rgba(255,255,255,0.3);
+}
+
+/* Средний ряд (Сумма) */
+.card-middle-row {
+  z-index: 3;
+  margin-top: 10px;
+}
+
+.card-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 4px;
+}
+
+.card-amount {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #F2C94C; /* Золотой цвет */
+  text-shadow: 0 2px 10px rgba(242, 201, 76, 0.3);
+  line-height: 1.1;
+}
+
+/* Нижний ряд (Владелец и Статус) */
+.card-bottom-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  z-index: 3;
+}
+
+.card-label-small {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+}
+
+.card-value {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Красим статус, если есть риск */
+.card-status .card-value {
+  color: #F2C94C; /* По умолчанию золотой */
+}
+
+/* ============ ОСТАЛЬНЫЕ СТИЛИ ============ */
+.UploadZone {
+  border: 2px dashed var(--border-strong);
+  border-radius: 24px;
+  padding: 80px 20px;
+  text-align: center;
+  background: var(--surface);
+  width: 100%;
+  backdrop-filter: blur(12px);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+}
+
+.UploadZone:hover {
+  border-color: var(--accent);
+  background: var(--surface-strong);
+  box-shadow: 0 0 30px var(--shadow-accent);
+}
+
+.UploadIcon {
+  font-size: 50px;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 0 10px var(--shadow-accent));
+}
+
+.upload-btn {
+  background: var(--accent) !important;
+  color: #000 !important;
+  font-weight: bold;
+  padding: 14px 32px;
+  font-size: 16px;
+  border-radius: 100px;
+  margin-top: 15px;
+  box-shadow: 0 0 20px var(--shadow-accent);
+}
+
+.upload-btn:hover {
+  background: var(--accent-2) !important;
+  box-shadow: 0 0 30px var(--shadow-accent-strong);
+  transform: scale(1.05) translateY(-2px);
+}
+
+.LoadingZone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 0;
+  animation: fadeIn 0.5s ease;
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid var(--surface-button);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 24px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.SuccessBanner {
+  background: rgba(163, 230, 53, 0.1);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.LandingPage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50vh;
+  font-size: 20px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.StaticBackground {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -2;
+  background: radial-gradient(circle at 50% 50%, rgba(163, 230, 53, 0.05) 0%, var(--bg) 70%);
+  pointer-events: none;
+}
