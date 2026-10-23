@@ -443,6 +443,7 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "company_name",
+                "confirm_password",
                 "email",
                 "password"
             ],
@@ -451,6 +452,10 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 64,
                     "minLength": 2
+                },
+                "confirm_password": {
+                    "type": "string",
+                    "minLength": 6
                 },
                 "email": {
                     "type": "string"

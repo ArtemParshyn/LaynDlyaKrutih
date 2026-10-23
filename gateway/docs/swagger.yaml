@@ -6,6 +6,9 @@ definitions:
         maxLength: 64
         minLength: 2
         type: string
+      confirm_password:
+        minLength: 6
+        type: string
       email:
         type: string
       password:
@@ -13,6 +16,7 @@ definitions:
         type: string
     required:
     - company_name
+    - confirm_password
     - email
     - password
     type: object

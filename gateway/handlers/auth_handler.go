@@ -48,6 +48,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
+	if req.Password != req.ConfirmPassword {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "passwords do not match"})
+		return
+	}
+
 	hashedPassword, err := auth.HashPassword(req.Password)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "failed to hash password"})
