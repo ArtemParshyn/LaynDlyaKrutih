@@ -5,134 +5,185 @@ import { useAuth } from './context/AuthContext';
 import { CircleLoader } from 'react-spinners';
 import { toast } from 'sonner';
 
-
 ReactModal.setAppElement('#root');
 
 interface RegistrationModalProps {
-  shouldCloseOnOverlayClick: boolean;
-  shouldCloseOnEsc: boolean;
+  shouldCloseOnOverlayClick?: boolean;
+  shouldCloseOnEsc?: boolean;
   isOpen: boolean;
   onClose: () => void;
   initialTab?: 'login' | 'register' | null;
 }
 
-const RegistrationModal = ({ isOpen = false,
+const RegistrationModal = ({
+  isOpen = false,
   onClose,
-  initialTab = null,
+  initialTab = 'login',
   shouldCloseOnOverlayClick = false,
   shouldCloseOnEsc = false,
 }: RegistrationModalProps) => {
-
-
   const { login, register: registerUser, logout, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
   const [pass, setPass] = useState('');
-  // zustand ||  MobX
+
+  // Поля регистрации согласно Swagger dto.CreateUserRequest:
+  // company_name (2-64), email, password (min 6), confirm_password (min 6)
+  const [companyName, setCompanyName] = useState('');
   const [pass1, setPass1] = useState('');
   const [pass2, setPass2] = useState('');
-  const isLoginDisabled = !email || !pass;
-  const isRegisterDisabled = !name || !email || !pass1 || !pass2 || pass1 !== pass2;
-  const [error, setError] = useState('')
+  const [error, setError] = useState('');
 
+  const [activeTab, setActiveTab] = useState<'login' | 'register' | null>(initialTab || 'login');
 
-  const [activeTab, setActiveTab] = useState<'login' | 'register' | null>(initialTab);
+  const isLoginDisabled = !email.trim() || !pass;
+  const isRegisterDisabled =
+    !companyName.trim() ||
+    companyName.trim().length < 2 ||
+    !email.trim() ||
+    !pass1 ||
+    pass1.length < 6 ||
+    !pass2 ||
+    pass1 !== pass2;
 
   const handleLogin = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setError('')
-    const target = event.target
-    const name = target.name
+    setError('');
+    const target = event.target;
+    if (target.name === 'email') setEmail(target.value);
+    if (target.name === 'pass') setPass(target.value);
+  };
 
-    if (name === 'email') setEmail(target.value)
-    if (name === 'pass') setPass(target.value)
-  }
   const handleRegister = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setError('')
-    const target = event.target
-    const name = target.name
-
-    if (name === 'name') setName(target.value)
-    if (name === 'pass1') setPass1(target.value)
-    if (name === 'pass2') setPass2(target.value)
-    if (name === 'email') setEmail(target.value)
-
-
-  }
-
-
-
+    setError('');
+    const target = event.target;
+    if (target.name === 'companyName') setCompanyName(target.value);
+    if (target.name === 'email') setEmail(target.value);
+    if (target.name === 'pass1') setPass1(target.value);
+    if (target.name === 'pass2') setPass2(target.value);
+  };
 
   return (
-
     <ReactModal
       shouldCloseOnOverlayClick={shouldCloseOnOverlayClick}
       shouldCloseOnEsc={shouldCloseOnEsc}
-      className='RegistrationModal'
-      overlayClassName='RegistrationModal-overlay'
+      className="RegistrationModal"
+      overlayClassName="RegistrationModal-overlay"
       isOpen={isOpen}
-      onRequestClose={onClose}>
+      onRequestClose={onClose}
+    >
       <div className="modal-tabs">
-
-        <button className='Button' onClick={() => setActiveTab('login')}>Вход
-
+        <button
+          className={`Button ${activeTab === 'login' ? 'active-tab' : ''}`}
+          onClick={() => {
+            setActiveTab('login');
+            setError('');
+          }}
+        >
+          Вход
         </button>
 
-
-        <button className='Button' onClick={() => setActiveTab('register')}>Регистрация
-
+        <button
+          className={`Button ${activeTab === 'register' ? 'active-tab' : ''}`}
+          onClick={() => {
+            setActiveTab('register');
+            setError('');
+          }}
+        >
+          Регистрация
         </button>
-        <button className='Button'
-          onClick={() => onClose()}>
 
+        <button className="Button" onClick={onClose} title="Закрыть">
           ❌
         </button>
 
-
         {activeTab === 'login' && (
           <>
-            <input type="email" placeholder="Email" value={email} name='email' onChange={handleLogin} />
-            <input type="password" placeholder="Пароль" value={pass} name='pass' onChange={handleLogin} />
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              name="email"
+              onChange={handleLogin}
+              autoComplete="email"
+            />
+            <input
+              type="password"
+              placeholder="Пароль"
+              value={pass}
+              name="pass"
+              onChange={handleLogin}
+              autoComplete="current-password"
+            />
             <button
-              className='Button'
+              className="Button"
               disabled={isLoginDisabled || loading}
               onClick={async () => {
                 setError('');
                 setLoading(true);
                 try {
-                  await login({ email, password: pass });
-                  toast.success('Успешный вход в аккаут)')
+                  await login({ email: email.trim(), password: pass });
+                  toast.success('Успешный вход в аккаунт!');
                   onClose();
                 } catch (err) {
                   setError(err instanceof Error ? err.message : 'Ошибка входа');
                 } finally {
                   setLoading(false);
-
                 }
               }}
             >
-              {loading ?
-                <CircleLoader color="#fff" size={18} />
-                : 'Войти'}
+              {loading ? <CircleLoader color="#fff" size={18} /> : 'Войти'}
             </button>
           </>
         )}
 
         {activeTab === 'register' && (
           <>
-            <input type="text" placeholder="Имя" value={name} onChange={handleRegister} name='name' />
-            <input type="email" placeholder="Email" value={email} onChange={handleRegister} name='email' />
-            <input type="password" placeholder="Пароль" value={pass1} onChange={handleRegister} name='pass1' />
-            <input type="password" placeholder="Подтвердите пароль" value={pass2} onChange={handleRegister} name='pass2' />
+            <input
+              type="text"
+              placeholder="Название компании / Организация"
+              value={companyName}
+              onChange={handleRegister}
+              name="companyName"
+              maxLength={64}
+            />
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={handleRegister}
+              name="email"
+              autoComplete="email"
+            />
+            <input
+              type="password"
+              placeholder="Пароль (минимум 6 символов)"
+              value={pass1}
+              onChange={handleRegister}
+              name="pass1"
+              autoComplete="new-password"
+            />
+            <input
+              type="password"
+              placeholder="Подтвердите пароль"
+              value={pass2}
+              onChange={handleRegister}
+              name="pass2"
+              autoComplete="new-password"
+            />
             <button
-              className='Button'
+              className="Button"
               disabled={isRegisterDisabled || loading}
               onClick={async () => {
                 setError('');
                 setLoading(true);
                 try {
-                  await registerUser({ name, email, password: pass1, repeatPassword: pass2 });
-                  toast.success('Успешная регистрация)')
+                  await registerUser({
+                    company_name: companyName.trim(),
+                    email: email.trim(),
+                    password: pass1,
+                    confirm_password: pass2,
+                  });
+                  toast.success('Успешная регистрация!');
                   onClose();
                 } catch (err) {
                   setError(err instanceof Error ? err.message : 'Ошибка регистрации');
@@ -141,40 +192,39 @@ const RegistrationModal = ({ isOpen = false,
                 }
               }}
             >
-              {loading ? <CircleLoader color="#fff" size={18} />
-                : 'Зарегистрироваться'}
+              {loading ? <CircleLoader color="#fff" size={18} /> : 'Зарегистрироваться'}
             </button>
           </>
         )}
       </div>
+
       {error && <div className="error-message">{error}</div>}
+
       {isAuthenticated && (
-        <button className='Button' onClick={async () => {
-          await logout();
-          onClose();
-          toast.success('Вы вышли из аккаунта)')
-        }}>
+        <button
+          className="Button"
+          onClick={async () => {
+            await logout();
+            onClose();
+            toast.success('Вы вышли из аккаунта');
+          }}
+        >
           Выйти из аккаунта
         </button>
       )}
     </ReactModal>
   );
-}
-
-
-
+};
 
 const ProfileButton = () => {
-  const { user, openModal } = useAuth()
-  const avatarSrc = user?.imageUrl
-    ? `http://localhost:5000${user.imageUrl}`
-    : '/images/profile.png';
+  const { user, openModal } = useAuth();
+  const avatarSrc = user?.imageUrl || '/images/profile.png';
+
   return (
-    <>
-      <button className='profileButton' onClick={() => openModal()}>
-        <img className='imageProfile' src={avatarSrc} alt="Профиль" ></img>
-      </button>
-    </>
+    <button className="profileButton" onClick={openModal} title={user?.company_name || 'Профиль'}>
+      <img className="imageProfile" src={avatarSrc} alt={user?.company_name || 'Профиль'} />
+    </button>
   );
 };
+
 export { ProfileButton, RegistrationModal };

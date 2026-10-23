@@ -1,8 +1,7 @@
-
 import { useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { CircleLoader } from 'react-spinners';
-import { Toaster, toast } from 'sonner';
+import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 
 const EditAvatar = () => {
@@ -19,54 +18,56 @@ const EditAvatar = () => {
       setError('');
     }
   };
+
   const handleSaveAvatar = async () => {
     if (!file) {
-      setError('Ошибка, выберите файл')
+      setError('Ошибка, выберите файл');
       return;
     }
-    setLoading(true)
-    setError('')
+    setLoading(true);
+    setError('');
     try {
       await updateAvatar(file);
-      toast.success('Аватарка успешна изменена')
+      toast.success('Аватарка успешно изменена');
       setFile(null);
 
       if (inputRef.current) {
         inputRef.current.value = '';
       }
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Ошибка загрузки');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка загрузки');
     } finally {
       setLoading(false);
-
     }
   };
 
   return (
     <motion.div>
-      <div>
+      <div className="ProfilePage-avatarForm">
+        <label htmlFor="avatar-input" className="file-label">
+          Выбрать картинку
+        </label>
+        <input
+          ref={inputRef}
+          id="avatar-input"
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+        />
+        {file?.name && (
+          <div style={{ margin: '8px 0', fontSize: '14px' }}>
+            Выбранная картинка: <span className="file-name">{file.name}</span>
+          </div>
+        )}
 
-        <div className="ProfilePage-avatarForm">
-          <label htmlFor="avatar-input" className="file-label">
-            Выбрать картинку
-          </label>
-          <input
-            ref={inputRef}
-            id="avatar-input"
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-          />
-          Выбранная картинка: {file?.name && <span className="file-name">{file.name}</span>}
+        {error && <div className="error-message">{error}</div>}
 
-          <button className='Button' onClick={handleSaveAvatar} disabled={loading || !file}>
-            {loading ? <CircleLoader color="#fff" size={18} /> : 'Загрузить фото профиля'}
-          </button>
-        </div>
+        <button className="Button" onClick={handleSaveAvatar} disabled={loading || !file}>
+          {loading ? <CircleLoader color="#fff" size={18} /> : 'Загрузить фото профиля'}
+        </button>
       </div>
     </motion.div>
-
   );
-}
+};
 
 export default EditAvatar;

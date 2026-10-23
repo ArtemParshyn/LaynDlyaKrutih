@@ -1,8 +1,7 @@
 import './App.css';
 import Header from './regular/header';
 import Footer from './regular/footer';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import MainPage from './pages/main';
+import { Routes, Route } from 'react-router-dom';
 import Dashboard from './pages/Dashboard'; // НАШ НОВЫЙ ДАШБОРД
 import ProfilePage from './pages/profilePage/profile_page';
 import SettingsPage from './pages/settings';

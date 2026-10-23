@@ -1,11 +1,10 @@
 import { z } from 'zod';
 
 export const nameSchema = z.object({
-    new_name: z
-        .string()
-        .min(3, 'Минимум 3 символа')
-        .max(16, 'Максимум 16 символов')
-        .regex(/^[a-z0-9_-]+$/, 'Только латиница, цифры, _ и -'),
+  new_name: z
+    .string()
+    .min(2, 'Минимум 2 символа')
+    .max(64, 'Максимум 64 символа'),
 });
 
 export type NameFormData = z.infer<typeof nameSchema>;

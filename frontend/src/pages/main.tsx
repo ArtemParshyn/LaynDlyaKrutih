@@ -24,7 +24,7 @@ const HelloText = () => {
     const { user } = useAuth();
     return (
         <div className='Hellotext'>
-            <p> Привет  {user?.name || 'гость'}</p>
+            <p> Привет, {user?.company_name || user?.name || 'гость'}</p>
         </div>
     );
 }

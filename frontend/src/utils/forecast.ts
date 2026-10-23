@@ -49,7 +49,6 @@ export function forecastBalance(
     for (let i = 1; i <= days; i++) {
         const day = new Date(start);
         day.setDate(day.getDate() + i);
-        const dayStr = day.toISOString().slice(0, 10);
 
         for (const r of recurring) {
             const last = lastDateByCategory.get(r.category)!;

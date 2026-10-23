@@ -2,37 +2,43 @@ import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { ProfileCardSkeleton } from '../../components/skeleton';
 import '../../App.css';
-import { CircleLoader } from 'react-spinners';
-import ProfileCard from './profileCard'
+import ProfileCard from './profileCard';
 import { ChangePasswordForm } from './ChangePasswordForm';
 import EditAvatar from './EditAvatar';
-import LogoutButton from "./LogoutButton";
-import EditNameForm from "./EditNameForm";
+import EditNameForm from './EditNameForm';
 import EmptyState from '../../components/EmptyState';
-
+import { toast } from 'sonner';
 
 const ProfilePage = () => {
-
-  const { user, loading, openModal } = useAuth();
-  const [error, setError] = useState('');
+  const { user, loading, openModal, deleteAccount } = useAuth();
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
   const [openAvatar, setOpenAvatar] = useState(false);
   const [isNameOpen, setIsNameOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
+  const handleOpenAvatarImage = () => {
+    setOpenAvatar((prev) => !prev);
+  };
 
-  const hadleOpenAvatarImage = () => {
-    setOpenAvatar(!openAvatar);
-  }
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      'Вы уверены, что хотите удалить свой аккаунт? Это действие необратимо и удалит данные из базы.'
+    );
+    if (!confirmed) return;
 
-
-
-
-
+    setIsDeleting(true);
+    try {
+      await deleteAccount();
+      toast.success('Аккаунт успешно удален');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Ошибка при удалении аккаунта');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
-
     <div className="ProfilePage">
-
       {loading ? (
         <ProfileCardSkeleton />
       ) : !user ? (
@@ -47,35 +53,51 @@ const ProfilePage = () => {
           }
         />
       ) : (
-        <ProfileCard />
+        <>
+          <ProfileCard />
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '20px' }}>
+            <div>
+              <button className="Button" onClick={handleOpenAvatarImage}>
+                {openAvatar ? 'Скрыть загрузку аватарки' : 'Сменить аватарку'}
+              </button>
+              {openAvatar && <EditAvatar />}
+            </div>
+
+            <div>
+              <button className="Button" onClick={() => setIsNameOpen(true)}>
+                Сменить название компании
+              </button>
+              <EditNameForm isOpen={isNameOpen} onClose={() => setIsNameOpen(false)} />
+            </div>
+
+            <div>
+              <button className="Button" onClick={() => setIsPasswordOpen(true)}>
+                Сменить пароль
+              </button>
+              <ChangePasswordForm
+                isOpen={isPasswordOpen}
+                onClose={() => setIsPasswordOpen(false)}
+              />
+            </div>
+
+            <div style={{ marginTop: '20px' }}>
+              <button
+                className="Button"
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+                style={{
+                  backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                  color: '#ef4444',
+                  borderColor: '#ef4444',
+                }}
+              >
+                {isDeleting ? 'Удаление...' : 'Удалить аккаунт'}
+              </button>
+            </div>
+          </div>
+        </>
       )}
-
-
-      <div>
-        <button className='Button' onClick={hadleOpenAvatarImage}> Сменить аватарку</button>
-        {openAvatar &&
-          <EditAvatar />
-        }
-      </div>
-      <div>
-        <button className='Button' onClick={() => setIsNameOpen(true)}>
-          Сменить имя
-        </button>
-        <EditNameForm isOpen={isNameOpen} onClose={() => setIsNameOpen(false)} />
-      </div>
-
-      <div>
-        <button className='Button' onClick={() => setIsPasswordOpen(true)}>
-          Сменить пароль
-        </button>
-        <ChangePasswordForm isOpen={isPasswordOpen} onClose={() => setIsPasswordOpen(false)} />
-      </div>
-
-
-      <div>
-        {error && <div className="error-message">{error}</div>}
-
-      </div>
     </div>
   );
 };

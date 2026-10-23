@@ -89,7 +89,7 @@ const Dashboard = () => {
             <div className="DashboardHeader">
                 <div>
                     <h1>Финансовый пульс</h1>
-                    <p>Здравствуйте, {user?.name || 'Гость'}. Ваш прогноз готов.</p>
+                    <p>Здравствуйте, {user?.company_name || user?.name || 'Гость'}. Ваш прогноз готов.</p>
                 </div>
                 {chartData && (
                     <button className="Button" onClick={handleReset}>
@@ -148,7 +148,7 @@ const Dashboard = () => {
                     {/* Карточка бизнеса (Правая колонка, верх) */}
                     <div className="GridCard">
                         <PlasticCard
-                            companyName={user?.name || 'Моя компания'}
+                            companyName={user?.company_name || user?.name || 'Моя компания'}
                             ostatok={chartData[chartData.length - 1]?.balance || 0}
                             cardStatus={gaps.length > 0 ? 'Риск разрыва' : 'Стабилен'}
                         />
