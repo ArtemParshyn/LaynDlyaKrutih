@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import './App.css';
 import ReactModal from 'react-modal';
 import { useAuth } from './context/AuthContext';
@@ -35,6 +35,17 @@ const RegistrationModal = ({
   const [error, setError] = useState('');
 
   const [activeTab, setActiveTab] = useState<'login' | 'register' | null>(initialTab || 'login');
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setActiveTab(initialTab || 'login');
+    setEmail('');
+    setPass('');
+    setCompanyName('');
+    setPass1('');
+    setPass2('');
+    setError('');
+  }, [isOpen, initialTab]);
 
   const isLoginDisabled = !email.trim() || !pass;
   const isRegisterDisabled =
@@ -131,7 +142,7 @@ const RegistrationModal = ({
                 }
               }}
             >
-              {loading ? <CircleLoader color="#fff" size={18} /> : 'Войти'}
+              {loading ? <CircleLoader color="var(--text)" size={18} /> : 'Войти'}
             </button>
           </>
         )}
@@ -192,7 +203,7 @@ const RegistrationModal = ({
                 }
               }}
             >
-              {loading ? <CircleLoader color="#fff" size={18} /> : 'Зарегистрироваться'}
+              {loading ? <CircleLoader color="var(--text)" size={18} /> : 'Зарегистрироваться'}
             </button>
           </>
         )}
@@ -221,8 +232,8 @@ const ProfileButton = () => {
   const label = (user?.company_name || user?.email || 'Профиль').trim();
 
   return (
-    <button className="profileButton" onClick={openModal} title={label}>
-      {label.charAt(0).toUpperCase()}
+    <button className="profileButton" onClick={openModal} title={label} aria-label={label}>
+      <img className="imageProfile" src="/images/profile.png" alt="" />
     </button>
   );
 };

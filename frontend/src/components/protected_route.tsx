@@ -14,7 +14,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     const { isAuthenticated, loading } = useAuth();
     if (loading) {
         return <div className="loader-wrap">
-            <CircleLoader color="#fff" size={50} />
+            <CircleLoader color="var(--text)" size={50} />
             <div>Загрузка...</div>
         </div>
     }

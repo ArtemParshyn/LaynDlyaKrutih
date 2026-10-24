@@ -60,7 +60,7 @@ const EditNameForm = ({ isOpen, onClose }: ChangeNameFormProps) => {
         />
 
         <button type="submit" className="Button" disabled={isSubmitting}>
-          {isSubmitting ? <CircleLoader color="#fff" size={18} /> : 'Подтвердить'}
+          {isSubmitting ? <CircleLoader color="var(--text)" size={18} /> : 'Подтвердить'}
         </button>
 
         {errors.new_name && (

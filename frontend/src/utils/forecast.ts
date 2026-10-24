@@ -51,7 +51,8 @@ export function forecastBalance(
         day.setDate(day.getDate() + i);
 
         for (const r of recurring) {
-            const last = lastDateByCategory.get(r.category)!;
+            const last = lastDateByCategory.get(r.category);
+            if (!last) continue;
             const daysSinceLast = Math.floor((day.getTime() - last.getTime()) / 86400000);
             const expectedOffset = Math.floor(r.intervalDays);
             if (expectedOffset > 0 && daysSinceLast > 0 &&
@@ -72,7 +73,8 @@ export function forecastBalance(
         .map(p => ({
             date: p.date,
             shortage: -p.balance,
-            probability: 0.6 + Math.random() * 0.3, // заглушка, заменить на модель
+            // TODO: заменить заглушку на модель. В UI не показывать.
+            probability: 0.75,
         }));
 
     return { forecast, gaps };

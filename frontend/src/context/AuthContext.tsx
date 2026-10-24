@@ -99,7 +99,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       await refreshProfile();
     } catch {
-      // Если авто-логин не прошел, просим войти вручную
+      toast.warning('Аккаунт создан, но не удалось войти автоматически. Войдите вручную.');
     }
   };
 

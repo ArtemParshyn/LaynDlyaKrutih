@@ -17,7 +17,17 @@ export interface UserInfo {
 // ==================== НОРМАЛИЗАЦИЯ ПОЛЬЗОВАТЕЛЯ ====================
 
 export function normalizeUser(rawUser: any): UserInfo {
-  if (!rawUser) return rawUser;
+  if (!rawUser) {
+    return {
+      id: 0,
+      email: '',
+      company_name: '',
+      created_at: '',
+      updated_at: '',
+      name: '',
+      createdAt: '',
+    };
+  }
 
   const companyName = rawUser.company_name || rawUser.name || '';
   const createdAt = rawUser.created_at || rawUser.createdAt || new Date().toISOString();

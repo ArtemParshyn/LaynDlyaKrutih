@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import '../App.css';
 import FinanceChart from '../components/FinanceChart';
 import { toast } from 'sonner';
-import { parseCSV } from '../utils/csv';
+import { parseCSV, Transaction } from '../utils/csv';
 import { forecastBalance, CashGap, ForecastPoint } from '../utils/forecast';
 import AnalyzedTable from "../components/AnalyzedTable";
 import PlasticCard from '../components/BusinessCard/BuisnessCard';
@@ -11,11 +11,18 @@ import PlasticCard from '../components/BusinessCard/BuisnessCard';
 const Dashboard = () => {
     const { user } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
-    const [uploadTransactions, setUploadTransactions] = useState<any[]>([]);
+    const [uploadTransactions, setUploadTransactions] = useState<Transaction[]>([]);
 
     // Храним данные графика и найденные разрывы
     const [chartData, setChartData] = useState<ForecastPoint[] | null>(null);
     const [gaps, setGaps] = useState<CashGap[]>([]);
+    const analysisTimer = useRef<number | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (analysisTimer.current) window.clearTimeout(analysisTimer.current);
+        };
+    }, []);
 
     // Общая функция для обработки текста (вызывается и для файла, и для демо)
     const processData = (text: string) => {
@@ -30,7 +37,8 @@ const Dashboard = () => {
             const { forecast, gaps: detectedGaps } = forecastBalance(transactions, 50000);
 
             // Небольшая задержка для красоты (имитация работы ИИ)
-            setTimeout(() => {
+            if (analysisTimer.current) window.clearTimeout(analysisTimer.current);
+            analysisTimer.current = window.setTimeout(() => {
                 setChartData(forecast);
                 setGaps(detectedGaps);
                 setUploadTransactions(transactions);
@@ -105,27 +113,13 @@ const Dashboard = () => {
                     <h2>Загрузите выписку для анализа</h2>
                     <p>Поддерживаются форматы CSV (выгрузки из банка или 1С)</p>
 
-                    <div style={{
-                        display: 'flex',
-                        gap: '15px',
-                        marginTop: '20px',
-                        flexWrap: 'wrap',
-                        justifyContent: 'center'
-                    }}>
-                        <label className="Button upload-btn" style={{ margin: 0 }}>
+                    <div className="UploadActions">
+                        <label className="Button upload-btn">
                             Выбрать файл .CSV
                             <input type="file" accept=".csv" onChange={handleFileUpload} hidden />
                         </label>
 
-                        <button
-                            className="Button"
-                            onClick={loadDemoData}
-                            style={{
-                                background: 'var(--surface-button)',
-                                color: 'var(--text)',
-                                border: '1px solid var(--border)'
-                            }}
-                        >
+                        <button className="Button" onClick={loadDemoData}>
                             Попробовать на демо-данных
                         </button>
                     </div>
@@ -156,7 +150,7 @@ const Dashboard = () => {
 
                     {/* Таблица (Левая колонка, под приветствием) */}
                     <div className="GridTable">
-                        <h3 style={{ color: 'var(--text)', marginTop: 0, marginBottom: '15px' }}>Детализация операций</h3>
+                        <h3 className="SectionTitle">Детализация операций</h3>
                         <AnalyzedTable transactions={uploadTransactions} />
                     </div>
 
@@ -185,42 +179,21 @@ const Dashboard = () => {
                     {/* Предупреждения (Снизу на всю ширину) */}
                     {gaps.length > 0 && (
                         <div className="GridWarnings">
-                            <h3 style={{ color: 'var(--text)', marginBottom: '15px' }}>Предупреждения о разрывах:</h3>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <h3 className="SectionTitle">Предупреждения о разрывах:</h3>
+                            <div className="GapList">
                                 {gaps.map((gap, idx) => (
-                                    <div key={idx} style={{
-                                        background: 'var(--surface)',
-                                        padding: '15px',
-                                        borderRadius: '12px',
-                                        borderLeft: '4px solid var(--error)',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        flexWrap: 'wrap',
-                                        gap: '10px'
-                                    }}>
+                                    <div key={idx} className="GapCard">
                                         <div>
-                                            <div style={{ fontWeight: 'bold', color: 'var(--text)', fontSize: '16px' }}>
-                                                📅 {gap.date}
+                                            <div className="GapCard-date">
+                                                {gap.date}
                                             </div>
-                                            <div style={{
-                                                color: 'var(--text-muted)',
-                                                fontSize: '14px',
-                                                marginTop: '4px'
-                                            }}>
+                                            <div className="GapCard-note">
                                                 Нехватка средств для обязательных платежей
                                             </div>
                                         </div>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <div style={{ color: 'var(--error)', fontWeight: 'bold', fontSize: '18px' }}>
+                                        <div className="GapCard-sum">
+                                            <div className="GapCard-amount">
                                                 -{gap.shortage.toLocaleString('ru-RU')} ₽
-                                            </div>
-                                            <div style={{
-                                                color: 'var(--text-faint)',
-                                                fontSize: '12px',
-                                                marginTop: '4px'
-                                            }}>
-                                                Вероятность: {Math.round(gap.probability * 100)}%
                                             </div>
                                         </div>
                                     </div>

@@ -1,15 +1,9 @@
 import '../App.css';
 import { useReactTable, getCoreRowModel, flexRender, ColumnDef } from '@tanstack/react-table';
 import { useMemo } from 'react';
+import { Transaction } from '../utils/csv';
 
-//1 строка из СSV
-export interface Transaction {
-    date: string;
-    amount: number;
-    category: string;
-    counterparty: string;
-    description?: string;
-}
+export type { Transaction };
 
 // 2. Описываем, как будет выглядеть сгруппированная строка (для таблицы)
 interface GroupedTransaction {
@@ -33,7 +27,7 @@ const columns: ColumnDef<GroupedTransaction>[] = [
         cell: (info) => {
             const val = info.getValue() as number;
             // Красим приход в зеленый, расход в красный
-            return <span style={{ color: val > 0 ? 'green' : 'red', fontWeight: 'bold' }}>
+            return <span className={val > 0 ? 'Amount--plus' : 'Amount--minus'}>
                 {val > 0 ? '+' : ''}{val.toLocaleString('ru-RU')} ₽
             </span>;
         }}
@@ -52,13 +46,14 @@ const AnalyzedTable = ({transactions}:AnalyzedTableProps ) => {
             const monthName = months[dateObj.getMonth()];
 
             // Создаем уникальный ключ для группы: "Октябрь_Продукты_Пятерочка"
-            const groupKey = `${monthName}_${t.category}_${t.counterparty}`;
+            const counterparty = t.description || '—';
+            const groupKey = `${monthName}_${t.category}_${counterparty}`;
 
             if (!groups[groupKey]) {
                 groups[groupKey] = {
                     month: monthName,
                     category: t.category,
-                    counterparty: t.counterparty,
+                    counterparty,
                     amount: 0,
                 };
             }

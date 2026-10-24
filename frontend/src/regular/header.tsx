@@ -70,7 +70,7 @@ const BurgerMenu = () => {
 
   return (
     <div className="BurgerMenu">
-      <Hamburger toggled={isOpen} toggle={setIsOpen} />
+      <Hamburger toggled={isOpen} toggle={setIsOpen} label="Меню" />
 
       {isOpen && (
         <div className="BurgerMenu-dropdown">
@@ -96,9 +96,11 @@ const Header = () => {
       </div>
 
       <div className="Header-right-group">
-        <ProfileButton />
+        <div className="Header-icon-stack">
+          <ProfileButton />
+          <ThemeSwap />
+        </div>
         <BurgerMenu />
-        <ThemeSwap />
       </div>
     </header>
   );

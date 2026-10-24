@@ -87,7 +87,7 @@ const ChangePasswordForm = ({ isOpen, onClose }: ChangePasswordFormProps) => {
       />
       {error && <div className="error-message">{error}</div>}
       <button className="Button" onClick={handleSubmit} disabled={isDisabled}>
-        {loading ? <CircleLoader color="#fff" size={18} /> : 'Подтвердить'}
+        {loading ? <CircleLoader color="var(--text)" size={18} /> : 'Подтвердить'}
       </button>
     </ReactModal>
   );

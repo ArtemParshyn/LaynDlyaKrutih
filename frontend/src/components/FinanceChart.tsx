@@ -12,8 +12,8 @@ interface FinanceChartProps {
 
 const FinanceChart = ({ data }: FinanceChartProps) => {
     return (
-        <div style={{ width: '100%', height: 350, background: 'var(--surface)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-soft)' }}>
-            <h3 style={{ margin: '0 0 20px 0', color: 'var(--text)', textAlign: 'left' }}>Прогноз остатка</h3>
+        <div className="FinanceChart">
+            <h3 className="SectionTitle">Прогноз остатка</h3>
 
             <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
