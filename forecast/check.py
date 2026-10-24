@@ -10,4 +10,4 @@ class NotEnoughData(Exception):
 def check(request: ForecastRequest) -> bool:
     if request.as_of is None or request.opening_balance is None:
         raise NotEnoughData("нужны дата и остаток")
-    return len(request.history) >= MIN_HISTORY_DAYS
+    return len({row.date for row in request.history if row.date <= request.as_of}) >= MIN_HISTORY_DAYS

@@ -1,0 +1,727 @@
+basePath: /
+definitions:
+  dto.Alert:
+    properties:
+      chance:
+        type: number
+      date:
+        type: string
+      reason:
+        type: string
+      shortfall:
+        type: integer
+    type: object
+  dto.CreateUserRequest:
+    properties:
+      company_name:
+        maxLength: 64
+        minLength: 2
+        type: string
+      confirm_password:
+        minLength: 6
+        type: string
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - company_name
+    - confirm_password
+    - email
+    - password
+    type: object
+  dto.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  dto.ForecastDay:
+    properties:
+      balance_high:
+        type: integer
+      balance_low:
+        type: integer
+      date:
+        type: string
+      expected_balance:
+        type: integer
+      inflow:
+        type: integer
+      outflow:
+        type: integer
+    type: object
+  dto.ForecastResponse:
+    properties:
+      alerts:
+        items:
+          $ref: '#/definitions/dto.Alert'
+        type: array
+      days:
+        items:
+          $ref: '#/definitions/dto.ForecastDay'
+        type: array
+      recurring_payments:
+        items:
+          $ref: '#/definitions/dto.ScheduledPayment'
+        type: array
+      rough:
+        type: boolean
+    type: object
+  dto.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dto.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+      user:
+        $ref: '#/definitions/dto.UserInfo'
+    type: object
+  dto.PlanEvent:
+    properties:
+      amount:
+        type: integer
+      category:
+        type: string
+      created_at:
+        type: string
+      date:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      is_income:
+        type: boolean
+      recurring:
+        type: boolean
+    required:
+    - amount
+    - category
+    - date
+    type: object
+  dto.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    type: object
+  dto.RefreshTokenResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
+  dto.ScenarioRequest:
+    properties:
+      events:
+        items:
+          $ref: '#/definitions/dto.ScheduledPayment'
+        type: array
+    required:
+    - events
+    type: object
+  dto.ScheduledPayment:
+    properties:
+      amount:
+        type: integer
+      category:
+        type: string
+      date:
+        type: string
+      is_income:
+        type: boolean
+    type: object
+  dto.SuccessResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  dto.UpdateUserRequest:
+    properties:
+      company_name:
+        maxLength: 64
+        minLength: 2
+        type: string
+      password:
+        minLength: 6
+        type: string
+    type: object
+  dto.UserInfo:
+    properties:
+      company_name:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: 'Шлюз входа: авторизация (JWT + Redis), сборка финансового пакета и
+    оркестрация сервисов выписки, планов и прогноза.'
+  title: Financial Forecast & Auth Gateway API
+  version: "1.0"
+paths:
+  /api/events:
+    get:
+      description: Возвращает созданные пользователем плановые расходы и доходы (разовые
+        и регулярные)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.PlanEvent'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Список запланированных событий пользователя
+      tags:
+      - Forecast
+    post:
+      consumes:
+      - application/json
+      description: Сохраняет событие в планах и запускает полный пересчёт прогноза
+      parameters:
+      - description: Данные события
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PlanEvent'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ForecastResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Добавление запланированного события
+      tags:
+      - Forecast
+  /api/events/{id}:
+    delete:
+      description: Удаляет плановое событие по ID и пересчитывает прогноз
+      parameters:
+      - description: ID события
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ForecastResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удаление запланированного события
+      tags:
+      - Forecast
+  /api/forecast:
+    get:
+      description: Читает уже посчитанные дни и предупреждения из выписки и отдаёт
+        сайту без пересчёта
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ForecastResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получение готового прогноза
+      tags:
+      - Forecast
+  /api/scenarios:
+    post:
+      consumes:
+      - application/json
+      description: Берёт финансовый пакет, добавляет гипотетические события и возвращает
+        вторую линию прогноза без сохранения в базу
+      parameters:
+      - description: Список гипотетических событий
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ScenarioRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ForecastResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Расчёт альтернативного сценария «что если»
+      tags:
+      - Forecast
+  /api/statements:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Принимает CSV, отдаёт его выписке, собирает данные из выписки и
+        планов, вызывает прогноз и сохраняет результат в выписку
+      parameters:
+      - description: CSV файл банковской выписки
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ForecastResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Загрузка банковской выписки CSV
+      tags:
+      - Forecast
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Проверяет email и пароль, возвращает Access и Refresh токены, а
+        также сохраняет сессию в Redis
+      parameters:
+      - description: Учетные данные
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Авторизация пользователя
+      tags:
+      - Auth
+  /logout:
+    post:
+      description: Удаляет Refresh сессию из Redis и очищает cookies
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SuccessResponse'
+      summary: Выход из системы
+      tags:
+      - Auth
+  /me:
+    delete:
+      description: Удаляет текущего авторизованного пользователя из базы PostgreSQL
+        и сбрасывает кэш в Redis
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SuccessResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удаление профиля текущего пользователя
+      tags:
+      - Users
+    get:
+      description: Возвращает информацию об авторизованном пользователе
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserInfo'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Профиль текущего пользователя
+      tags:
+      - Users
+    patch:
+      consumes:
+      - application/json
+      description: Обновляет пароль и/или название компании текущего авторизованного
+        пользователя
+      parameters:
+      - description: Поля для обновления
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserInfo'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Обновление профиля текущего пользователя
+      tags:
+      - Users
+  /refresh:
+    post:
+      consumes:
+      - application/json
+      description: Принимает Refresh токен из Cookie или body, проверяет его в Redis
+        и выпускает новый Access токен
+      parameters:
+      - description: Refresh токен (опционально, если передан в Cookie)
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/dto.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.RefreshTokenResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Обновление Access токена
+      tags:
+      - Auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Создает нового пользователя и возвращает его данные
+      parameters:
+      - description: Данные регистрации
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.UserInfo'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Регистрация нового пользователя
+      tags:
+      - Auth
+  /users:
+    get:
+      description: 'Запрещён: пользователи не могут просматривать список чужих аккаунтов'
+      produces:
+      - application/json
+      responses:
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Список всех пользователей
+      tags:
+      - Users
+  /users/{id}:
+    delete:
+      description: Удаляет пользователя из базы PostgreSQL и сбрасывает кэш в Redis.
+        Доступ разрешён только к своему профилю.
+      parameters:
+      - description: ID пользователя
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удаление пользователя
+      tags:
+      - Users
+    get:
+      description: Возвращает данные пользователя. Доступ разрешён только к своему
+        профилю.
+      parameters:
+      - description: ID пользователя
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserInfo'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получение пользователя по ID
+      tags:
+      - Users
+    patch:
+      consumes:
+      - application/json
+      description: Обновляет пароль и/или название компании пользователя. Доступ разрешён
+        только к своему профилю.
+      parameters:
+      - description: ID пользователя
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Поля для обновления
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserInfo'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Обновление данных пользователя
+      tags:
+      - Users
+securityDefinitions:
+  BearerAuth:
+    description: 'Введите: Bearer <ваш_токен>'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

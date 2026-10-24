@@ -1,19 +1,177 @@
+# Local review stack.
+# Databases are not published. Site is :3000, gateway is :8080.
+# Until Nginx is in front, the browser calls the gateway port directly.
+
+name: review
+
 services:
+  postgres:
+    image: postgres:16
+    container_name: review-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret123}
+      POSTGRES_DB: auth_db
+    volumes:
+      - auth-data:/var/lib/postgresql/data
+    networks:
+      - review-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d auth_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7
+    container_name: review-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    networks:
+      - review-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  ledger-postgres:
+    image: postgres:16
+    container_name: review-ledger-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ledger
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret123}
+      POSTGRES_DB: ledger_db
+    volumes:
+      - ledger-data:/var/lib/postgresql/data
+    networks:
+      - review-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ledger -d ledger_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  planning-postgres:
+    image: postgres:16
+    container_name: review-planning-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: planning
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret123}
+      POSTGRES_DB: planning_db
+    volumes:
+      - planning-data:/var/lib/postgresql/data
+    networks:
+      - review-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U planning -d planning_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   gateway:
     build: ../gateway
+    image: review-gateway
+    container_name: review-gateway
+    restart: unless-stopped
     ports:
       - "8080:8080"
-    env_file: ../.env
+    environment:
+      PORT: "8080"
+      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_me}
+      DB_HOST: review-postgres
+      DB_PORT: "5432"
+      DB_USER: admin
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-secret123}
+      DB_NAME: auth_db
+      REDIS_HOST: review-redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ""
+      LEDGER_SERVICE_URL: http://review-ledger:8081
+      PLANNING_SERVICE_URL: http://review-planning:8082
+      FORECAST_SERVICE_URL: http://review-forecast:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - review-net
 
   ledger:
     build: ../ledger
-    env_file: ../.env
+    image: review-ledger
+    container_name: review-ledger
+    restart: unless-stopped
+    environment:
+      PORT: "8081"
+      DB_HOST: review-ledger-postgres
+      DB_PORT: "5432"
+      DB_USER: ledger
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-secret123}
+      DB_NAME: ledger_db
+    depends_on:
+      ledger-postgres:
+        condition: service_healthy
+    networks:
+      - review-net
 
   planning:
     build: ../planning
-    env_file: ../.env
+    image: review-planning
+    container_name: review-planning
+    restart: unless-stopped
+    environment:
+      PORT: "8082"
+      DB_HOST: review-planning-postgres
+      DB_PORT: "5432"
+      DB_USER: planning
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-secret123}
+      DB_NAME: planning_db
+    depends_on:
+      planning-postgres:
+        condition: service_healthy
+    networks:
+      - review-net
 
   forecast:
     build: ../forecast
-    expose:
-      - "8000"
+    image: review-forecast
+    container_name: review-forecast
+    restart: unless-stopped
+    networks:
+      review-net:
+        aliases:
+          - forecast
+
+  frontend:
+    build:
+      context: ../frontend
+      args:
+        REACT_APP_API_URL: ${PUBLIC_API_URL:-http://217.144.184.23:8080}
+    image: review-frontend
+    container_name: review-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    networks:
+      - review-net
+
+networks:
+  review-net:
+    name: review-net-local
+    driver: bridge
+
+volumes:
+  auth-data:
+    name: review-auth-data-local
+  redis-data:
+    name: review-redis-data-local
+  ledger-data:
+    name: review-ledger-data-local
+  planning-data:
+    name: review-planning-data-local
