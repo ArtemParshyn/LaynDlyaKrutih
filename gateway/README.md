@@ -73,3 +73,29 @@ LEDGER_SERVICE_URL=http://ledger:8081
 PLANNING_SERVICE_URL=http://planning:8082
 FORECAST_SERVICE_URL=http://forecast:8000
 ```
+
+## 1C integration
+
+The gateway provides a separate machine-to-machine REST API. It uses the same
+orchestrator as the web application, so statement parsing, recurring-payment
+detection and forecast calculation remain identical.
+
+Set `ONEC_INTEGRATION_TOKEN` in the gateway environment. Send that value in
+`X-1C-Token` (or `Authorization: Bearer ...`) and send the target application
+user in `X-User-ID`.
+
+Endpoints (the `/api/integration/1c` prefix is an equivalent alias):
+
+* `GET /integration/1c/health`
+* `POST /integration/1c/statements` — multipart field `file`, or raw CSV body;
+  CP1251/UTF-8/UTF-16, semicolon/comma/tab exports are supported by ledger.
+* `GET /integration/1c/forecast` — current forecast, operations and history.
+* `GET /integration/1c/events` — planned events.
+* `POST /integration/1c/events` — JSON event in the same format as the web API.
+
+Example headers:
+
+```text
+X-1C-Token: <ONEC_INTEGRATION_TOKEN>
+X-User-ID: 42
+```

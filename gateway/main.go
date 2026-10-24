@@ -54,6 +54,7 @@ func main() {
 	forecastClient := client.NewForecastClient(forecastURL)
 	orchestratorService := service.NewOrchestratorService(ledgerClient, planningClient, forecastClient)
 	forecastHandler := handlers.NewForecastHandler(orchestratorService)
+	oneCHandler := handlers.NewOneCHandler(forecastHandler)
 
 	router := gin.Default()
 
@@ -81,6 +82,29 @@ func main() {
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
+
+	// 1C machine-to-machine API. It is separate from the browser JWT API and
+	// reuses the same orchestration handlers and business rules.
+	oneC := router.Group("/integration/1c")
+	oneC.Use(handlers.OneCTokenMiddleware())
+	{
+		oneC.GET("/health", handlers.OneCHealth)
+		oneC.POST("/statements", oneCHandler.UploadStatement)
+		oneC.GET("/forecast", oneCHandler.GetForecast)
+		oneC.GET("/events", oneCHandler.GetEvents)
+		oneC.POST("/events", oneCHandler.CreateEvent)
+	}
+	// /api alias is useful for 1C configurations that keep all application
+	// endpoints below /api; both paths have identical behavior.
+	oneCApi := router.Group("/api/integration/1c")
+	oneCApi.Use(handlers.OneCTokenMiddleware())
+	{
+		oneCApi.GET("/health", handlers.OneCHealth)
+		oneCApi.POST("/statements", oneCHandler.UploadStatement)
+		oneCApi.GET("/forecast", oneCHandler.GetForecast)
+		oneCApi.GET("/events", oneCHandler.GetEvents)
+		oneCApi.POST("/events", oneCHandler.CreateEvent)
+	}
 
 	// Public Auth routes
 	router.POST("/register", authHandler.Register)

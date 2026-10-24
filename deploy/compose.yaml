@@ -94,6 +94,7 @@ services:
       LEDGER_SERVICE_URL: http://review-ledger:8081
       PLANNING_SERVICE_URL: http://review-planning:8082
       FORECAST_SERVICE_URL: http://review-forecast:8000
+      ONEC_INTEGRATION_TOKEN: ${ONEC_INTEGRATION_TOKEN:-change_this_to_a_long_random_secret}
     depends_on:
       postgres:
         condition: service_healthy
