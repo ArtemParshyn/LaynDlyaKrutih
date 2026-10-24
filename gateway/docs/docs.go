@@ -16,6 +16,44 @@ const docTemplate = `{
     "basePath": "{{.BasePath}}",
     "paths": {
         "/api/events": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает созданные пользователем плановые расходы и доходы (разовые и регулярные)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Forecast"
+                ],
+                "summary": "Список запланированных событий пользователя",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.PlanEvent"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -42,6 +80,58 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/dto.PlanEvent"
                         }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ForecastResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/events/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет плановое событие по ID и пересчитывает прогноз",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Forecast"
+                ],
+                "summary": "Удаление запланированного события",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID события",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -900,10 +990,22 @@ const docTemplate = `{
                 "category": {
                     "type": "string"
                 },
+                "created_at": {
+                    "type": "string"
+                },
                 "date": {
                     "type": "string"
                 },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
                 "is_income": {
+                    "type": "boolean"
+                },
+                "recurring": {
                     "type": "boolean"
                 }
             }

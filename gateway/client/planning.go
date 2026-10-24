@@ -98,3 +98,56 @@ func (c *PlanningClient) CreateEvent(ctx context.Context, userID uint, event dto
 
 	return nil
 }
+
+// GetEventsList retrieves raw user-created events from Planning service
+func (c *PlanningClient) GetEventsList(ctx context.Context, userID uint) ([]dto.PlanEvent, error) {
+	url := fmt.Sprintf("%s/events?raw=true", c.baseURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create get events list request: %w", err)
+	}
+
+	req.Header.Set("X-User-ID", strconv.FormatUint(uint64(userID), 10))
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("planning service get events list failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("planning service error %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var list []dto.PlanEvent
+	if err := json.NewDecoder(resp.Body).Decode(&list); err != nil {
+		return nil, fmt.Errorf("failed to decode planning events list: %w", err)
+	}
+
+	return list, nil
+}
+
+// DeleteEvent deletes a planned event in Planning service
+func (c *PlanningClient) DeleteEvent(ctx context.Context, userID uint, eventID uint64) error {
+	url := fmt.Sprintf("%s/events/%d", c.baseURL, eventID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create delete event request: %w", err)
+	}
+
+	req.Header.Set("X-User-ID", strconv.FormatUint(uint64(userID), 10))
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("planning service delete event failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("planning service delete event error %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	return nil
+}

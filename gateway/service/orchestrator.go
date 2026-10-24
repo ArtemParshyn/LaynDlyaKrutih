@@ -81,6 +81,20 @@ func (s *OrchestratorService) Recalculate(ctx context.Context, userID uint) (*dt
 		forecastResp.RecurringPayments = []dto.ScheduledPayment{}
 	}
 
+	// Append user-defined recurring planned events to recurring payments
+	if rawEvents, err := s.planning.GetEventsList(ctx, userID); err == nil {
+		for _, e := range rawEvents {
+			if e.Recurring {
+				forecastResp.RecurringPayments = append(forecastResp.RecurringPayments, dto.ScheduledPayment{
+					Date:     e.Date,
+					Amount:   e.Amount,
+					IsIncome: e.IsIncome,
+					Category: e.Category,
+				})
+			}
+		}
+	}
+
 	return forecastResp, nil
 }
 
@@ -157,5 +171,32 @@ func (s *OrchestratorService) GetForecast(ctx context.Context, userID uint) (*dt
 		resp.RecurringPayments = ledgerData.RecurringPayments
 	}
 
+	// Append user-defined recurring planned events
+	if rawEvents, err := s.planning.GetEventsList(ctx, userID); err == nil {
+		for _, e := range rawEvents {
+			if e.Recurring {
+				resp.RecurringPayments = append(resp.RecurringPayments, dto.ScheduledPayment{
+					Date:     e.Date,
+					Amount:   e.Amount,
+					IsIncome: e.IsIncome,
+					Category: e.Category,
+				})
+			}
+		}
+	}
+
 	return resp, nil
+}
+
+// GetEventsList retrieves raw user-created events from Planning service
+func (s *OrchestratorService) GetEventsList(ctx context.Context, userID uint) ([]dto.PlanEvent, error) {
+	return s.planning.GetEventsList(ctx, userID)
+}
+
+// DeleteEventAndRecalculate deletes a planned event and triggers forecast recalculation
+func (s *OrchestratorService) DeleteEventAndRecalculate(ctx context.Context, userID uint, eventID uint64) (*dto.ForecastResponse, error) {
+	if err := s.planning.DeleteEvent(ctx, userID, eventID); err != nil {
+		return nil, fmt.Errorf("failed to delete planned event: %w", err)
+	}
+	return s.Recalculate(ctx, userID)
 }

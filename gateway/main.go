@@ -110,6 +110,10 @@ func main() {
 
 		protected.POST("/api/events", forecastHandler.CreateEvent)
 		protected.POST("/events", forecastHandler.CreateEvent)
+		protected.GET("/api/events", forecastHandler.GetEvents)
+		protected.GET("/events", forecastHandler.GetEvents)
+		protected.DELETE("/api/events/:id", forecastHandler.DeleteEvent)
+		protected.DELETE("/events/:id", forecastHandler.DeleteEvent)
 
 		protected.POST("/api/scenarios", forecastHandler.CalculateScenario)
 		protected.POST("/scenarios", forecastHandler.CalculateScenario)

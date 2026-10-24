@@ -54,10 +54,14 @@ type LedgerData struct {
 
 // PlanEvent represents a planned event sent to/from Planning service
 type PlanEvent struct {
-	Date     string `json:"date" binding:"required"`
-	Amount   int64  `json:"amount" binding:"required,gt=0"`
-	IsIncome bool   `json:"is_income"`
-	Category string `json:"category" binding:"required"`
+	ID          uint64 `json:"id,omitempty"`
+	Date        string `json:"date" binding:"required"`
+	Amount      int64  `json:"amount" binding:"required,gt=0"`
+	IsIncome    bool   `json:"is_income"`
+	Category    string `json:"category" binding:"required"`
+	Description string `json:"description,omitempty"`
+	Recurring   bool   `json:"recurring"`
+	CreatedAt   string `json:"created_at,omitempty"`
 }
 
 // ScenarioRequest represents "what if" events to calculate a second forecast line

@@ -93,9 +93,17 @@ definitions:
         type: integer
       category:
         type: string
+      created_at:
+        type: string
       date:
         type: string
+      description:
+        type: string
+      id:
+        type: integer
       is_income:
+        type: boolean
+      recurring:
         type: boolean
     required:
     - amount
@@ -171,6 +179,31 @@ info:
   version: "1.0"
 paths:
   /api/events:
+    get:
+      description: Возвращает созданные пользователем плановые расходы и доходы (разовые
+        и регулярные)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.PlanEvent'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Список запланированных событий пользователя
+      tags:
+      - Forecast
     post:
       consumes:
       - application/json
@@ -204,6 +237,39 @@ paths:
       security:
       - BearerAuth: []
       summary: Добавление запланированного события
+      tags:
+      - Forecast
+  /api/events/{id}:
+    delete:
+      description: Удаляет плановое событие по ID и пересчитывает прогноз
+      parameters:
+      - description: ID события
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ForecastResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удаление запланированного события
       tags:
       - Forecast
   /api/forecast:

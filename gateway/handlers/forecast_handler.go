@@ -6,6 +6,7 @@ import (
 	"gateway/service"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -134,6 +135,65 @@ func (h *ForecastHandler) CreateEvent(c *gin.Context) {
 	}
 
 	forecast, err := h.orchestrator.CreateEventAndRecalculate(c.Request.Context(), userID, req)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, forecast)
+}
+
+// GetEvents godoc
+// @Summary      Список запланированных событий пользователя
+// @Description  Возвращает созданные пользователем плановые расходы и доходы (разовые и регулярные)
+// @Tags         Forecast
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200 {array} dto.PlanEvent
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      502 {object} dto.ErrorResponse
+// @Router       /api/events [get]
+func (h *ForecastHandler) GetEvents(c *gin.Context) {
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
+
+	events, err := h.orchestrator.GetEventsList(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, events)
+}
+
+// DeleteEvent godoc
+// @Summary      Удаление запланированного события
+// @Description  Удаляет плановое событие по ID и пересчитывает прогноз
+// @Tags         Forecast
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "ID события"
+// @Success      200 {object} dto.ForecastResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      502 {object} dto.ErrorResponse
+// @Router       /api/events/{id} [delete]
+func (h *ForecastHandler) DeleteEvent(c *gin.Context) {
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
+
+	idParam := c.Param("id")
+	eventID, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid event id"})
+		return
+	}
+
+	forecast, err := h.orchestrator.DeleteEventAndRecalculate(c.Request.Context(), userID, eventID)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, dto.ErrorResponse{Error: err.Error()})
 		return
