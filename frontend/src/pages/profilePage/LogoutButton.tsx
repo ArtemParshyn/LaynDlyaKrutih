@@ -8,9 +8,9 @@ interface LogoutButtonProps {
 
 const DoorIcon = () => (
   <svg
-    width="50"
-    height="50"
-    viewBox="0 0 30 24"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
     strokeWidth="2"

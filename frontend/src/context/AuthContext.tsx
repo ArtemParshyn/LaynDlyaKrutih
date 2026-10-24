@@ -5,6 +5,7 @@ import {
   logoutApi,
   updateUser as apiUpdateUser,
   deleteUser as apiDeleteUser,
+  getMe,
   normalizeUser,
   LoginRequest,
   RegisterData,
@@ -14,7 +15,6 @@ import {
   setUnauthorizedHandler,
   setErrorHandler,
   getAccessToken,
-  decodeAccessToken,
   clearTokens,
 } from '../api/apiClient';
 import { toast } from 'sonner';
@@ -32,29 +32,10 @@ interface AuthContextType {
   changePassword: (data: string | { oldPassword?: string; newPassword: string }) => Promise<void>;
   updateName: (name: string) => Promise<void>;
   deleteAccount: () => Promise<void>;
+  refreshProfile: () => Promise<UserInfo | null>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
-
-const userFromAccessToken = (): UserInfo | null => {
-  const token = getAccessToken();
-  if (!token) return null;
-
-  const claims = decodeAccessToken(token);
-  if (!claims) return null;
-  if (claims.exp && claims.exp * 1000 <= Date.now()) return null;
-
-  const id = Number(claims.user_id ?? claims.sub);
-  if (!Number.isFinite(id)) return null;
-
-  return normalizeUser({
-    id,
-    email: claims.email || '',
-    company_name: claims.company_name || '',
-    created_at: claims.iat ? new Date(claims.iat * 1000).toISOString() : '',
-    updated_at: '',
-  });
-};
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isModalOpen, setModalOpen] = useState(false);
@@ -78,28 +59,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [handleUnauthorized]);
 
-  // Профиль читается из access JWT (user_id, email, company_name). Запроса /me нет.
-  useEffect(() => {
-    const current = userFromAccessToken();
-    if (!current && getAccessToken()) clearTokens();
-    setUser(current);
-    setLoading(false);
+  const refreshProfile = useCallback(async (): Promise<UserInfo | null> => {
+    if (!getAccessToken()) {
+      setUser(null);
+      return null;
+    }
+    const me = normalizeUser(await getMe());
+    setUser(me);
+    return me;
   }, []);
+
+  // Загрузка профиля с /me при старте
+  useEffect(() => {
+    if (!getAccessToken()) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
+    refreshProfile()
+      .catch(() => {
+        setUser(null);
+      })
+      .finally(() => setLoading(false));
+  }, [refreshProfile]);
 
   const login = async (data: LoginRequest) => {
     await apiLogin(data);
-    setUser(userFromAccessToken());
+    await refreshProfile();
   };
 
   const register = async (data: RegisterData) => {
     await apiRegister(data);
-    // Автоматический логин после успешной регистрации для мгновенного входа
+    // Автоматический логин после успешной регистрации, затем профиль с /me
     try {
       await apiLogin({
         email: data.email,
         password: data.password,
       });
-      setUser(userFromAccessToken());
+      await refreshProfile();
     } catch {
       // Если авто-логин не прошел, просим войти вручную
     }
@@ -127,7 +125,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const updated = await apiUpdateUser(user.id, { password: newPassword });
-    setUser(userFromAccessToken() || updated);
+    setUser(normalizeUser(updated));
   };
 
   const updateName = async (name: string) => {
@@ -138,7 +136,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const updated = await apiUpdateUser(user.id, { company_name: trimmed });
-    setUser({ ...(userFromAccessToken() || updated), company_name: trimmed, name: trimmed });
+    setUser({ ...normalizeUser(updated), company_name: trimmed, name: trimmed });
   };
 
   const deleteAccount = async () => {
@@ -163,6 +161,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         changePassword,
         updateName,
         deleteAccount,
+        refreshProfile,
       }}
     >
       {children}

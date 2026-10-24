@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { ProfileCardSkeleton } from '../../components/skeleton';
 import '../../App.css';
@@ -9,10 +9,14 @@ import EmptyState from '../../components/EmptyState';
 import { toast } from 'sonner';
 
 const ProfilePage = () => {
-  const { user, loading, openModal, deleteAccount } = useAuth();
+  const { user, loading, openModal, deleteAccount, refreshProfile } = useAuth();
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
   const [isNameOpen, setIsNameOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    refreshProfile().catch(() => {});
+  }, [refreshProfile]);
 
   const handleDeleteAccount = async () => {
     const confirmed = window.confirm(
@@ -47,43 +51,28 @@ const ProfilePage = () => {
           }
         />
       ) : (
-        <>
+        <div className="ProfileStage">
           <ProfileCard />
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '20px' }}>
-            <div>
-              <button className="Button" onClick={() => setIsNameOpen(true)}>
-                Сменить название компании
-              </button>
-              <EditNameForm isOpen={isNameOpen} onClose={() => setIsNameOpen(false)} />
-            </div>
-
-            <div>
-              <button className="Button" onClick={() => setIsPasswordOpen(true)}>
-                Сменить пароль
-              </button>
-              <ChangePasswordForm
-                isOpen={isPasswordOpen}
-                onClose={() => setIsPasswordOpen(false)}
-              />
-            </div>
-
-            <div style={{ marginTop: '20px' }}>
-              <button
-                className="Button"
-                onClick={handleDeleteAccount}
-                disabled={isDeleting}
-                style={{
-                  backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                  color: '#ef4444',
-                  borderColor: '#ef4444',
-                }}
-              >
-                {isDeleting ? 'Удаление...' : 'Удалить аккаунт'}
-              </button>
-            </div>
+          <div className="ProfileActions">
+            <button className="Button ProfileActions-btn" onClick={() => setIsNameOpen(true)}>
+              Сменить название компании
+            </button>
+            <button className="Button ProfileActions-btn" onClick={() => setIsPasswordOpen(true)}>
+              Сменить пароль
+            </button>
+            <button
+              className="Button ProfileActions-btn ProfileActions-btn--danger"
+              onClick={handleDeleteAccount}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Удаление...' : 'Удалить аккаунт'}
+            </button>
           </div>
-        </>
+
+          <EditNameForm isOpen={isNameOpen} onClose={() => setIsNameOpen(false)} />
+          <ChangePasswordForm isOpen={isPasswordOpen} onClose={() => setIsPasswordOpen(false)} />
+        </div>
       )}
     </div>
   );

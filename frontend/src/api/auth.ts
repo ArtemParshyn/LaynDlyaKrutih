@@ -14,63 +14,6 @@ export interface UserInfo {
   createdAt?: string;
 }
 
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  access_token: string;
-  refresh_token: string;
-  user: UserInfo;
-}
-
-export interface CreateUserRequest {
-  company_name: string;
-  email: string;
-  password: string;
-  confirm_password: string;
-}
-
-export interface UpdateUserRequest {
-  company_name?: string;
-  password?: string;
-}
-
-export interface RefreshTokenRequest {
-  refresh_token?: string;
-}
-
-export interface RefreshTokenResponse {
-  access_token: string;
-  refresh_token?: string;
-}
-
-export interface SuccessResponse {
-  message: string;
-}
-
-export interface ErrorResponse {
-  error: string;
-}
-
-// Алиасы для обратной совместимости с существующими компонентами
-export type LoginData = LoginRequest;
-export type User = UserInfo;
-
-export interface RegisterData {
-  company_name?: string;
-  name?: string;
-  email: string;
-  password: string;
-  confirm_password?: string;
-  repeatPassword?: string;
-}
-
-export interface AuthResponse {
-  user: UserInfo;
-}
-
 // ==================== НОРМАЛИЗАЦИЯ ПОЛЬЗОВАТЕЛЯ ====================
 
 export function normalizeUser(rawUser: any): UserInfo {
@@ -155,6 +98,8 @@ export const registration = async (data: RegisterData): Promise<UserInfo> => {
     password,
     confirm_password: confirmPassword,
   };
+
+
 
   const createdUser = await apiClient<UserInfo>(`${API_URL}/register`, {
     method: 'POST',
@@ -245,3 +190,70 @@ export const changePassword = async (
   }
   return updateUser(userId, { password: data.newPassword });
 };
+
+/**
+ * Получение профиля текущего пользователя через /me
+ */
+export const getMe = async (): Promise<UserInfo> => {
+  const res = await apiClient<UserInfo>(`${API_URL}/me`, {
+    method: 'GET',
+  });
+  return normalizeUser(res);
+};
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  access_token: string;
+  refresh_token: string;
+  user: UserInfo;
+}
+
+export interface CreateUserRequest {
+  company_name: string;
+  email: string;
+  password: string;
+  confirm_password: string;
+}
+
+export interface UpdateUserRequest {
+  company_name?: string;
+  password?: string;
+}
+
+export interface RefreshTokenRequest {
+  refresh_token?: string;
+}
+
+export interface RefreshTokenResponse {
+  access_token: string;
+  refresh_token?: string;
+}
+
+export interface SuccessResponse {
+  message: string;
+}
+
+export interface ErrorResponse {
+  error: string;
+}
+
+export type LoginData = LoginRequest;
+
+export type User = UserInfo;
+
+export interface RegisterData {
+  company_name?: string;
+  name?: string;
+  email: string;
+  password: string;
+  confirm_password?: string;
+  repeatPassword?: string;
+}
+
+export interface AuthResponse {
+  user: UserInfo;
+}
