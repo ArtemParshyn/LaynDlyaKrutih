@@ -1,119 +1,75 @@
-# Auth & User Service
+# Gateway Service
 
-Микросервис авторизации и CRUD пользователей на Go (Gin, GORM, PostgreSQL, Redis, Argon2id, JWT). Без сторонних зависимостей вроде брокеров очередей.
+Шлюз входа системы прогноза денежных потоков на Go (Gin).
+Отвечает за авторизацию (JWT + Redis + Argon2id), извлечение `user_id` из токенов и оркестрацию микросервисов:
+- **Выписка (Ledger)** (`LEDGER_SERVICE_URL`)
+- **Планы (Planning)** (`PLANNING_SERVICE_URL`)
+- **Прогноз (Forecast)** (`FORECAST_SERVICE_URL`)
 
-## Стек технологий
-- **Go 1.26** / **Gin Framework**
-- **PostgreSQL 16** + **GORM** (хранение пользователей)
-- **Redis 7** (кэширование пользователей и хранение сессий refresh токенов)
-- **Argon2id** (криптографическое хеширование паролей)
-- **JWT (golang-jwt/v5)** (Access токены с валидацией через Middleware)
-- **Golang Migrate** (миграции базы данных)
-- **Docker & Docker Compose**
+Вход **не хранит** операции и **не считает** дни самостоятельно.
 
 ---
 
-## Архитектура проекта
+## Архитектура Gateway
 ```
 gateway/
-├── auth/
-│   ├── jwt.go            # Выпуск, валидация JWT, генерация refresh-токена и AuthMiddleware
-│   └── password.go       # Хеширование и верификация паролей через Argon2id
-├── database/
-│   ├── postgres.go       # Подключение к PostgreSQL через GORM
-│   └── redis.go          # Подключение к Redis
+├── auth/                 # JWT токены, пароли Argon2id, AuthMiddleware
+├── client/
+│   ├── ledger.go         # Клиент к микросервису выписки
+│   ├── planning.go       # Клиент к микросервису планов
+│   └── forecast.go       # Клиент к микросервису прогноза
+├── database/             # PostgreSQL (только таблица users) и Redis
 ├── dto/
-│   └── user.go           # Request / Response структуры с валидацией (binding)
-├── entity/
-│   └── user.go           # GORM-модель пользователя (id, email, company_name, password...)
+│   ├── user.go           # DTO авторизации и профиля
+│   └── forecast.go       # Финансовый пакет, дни, алерты, сценарии
 ├── handlers/
 │   ├── auth_handler.go   # Регистрация, логин, refresh, logout
-│   └── user_handler.go   # GetMe, GetUser, GetAll, UpdateUser, DeleteUser + кэширование
-├── migrations/
-│   ├── 000001_create_users_table.up.sql   # Создание таблицы users сразу с company_name
-│   └── 000001_create_users_table.down.sql
-├── repository/
-│   └── user_repo.go      # Слой работы с БД через GORM интерфейс
-├── .env                  # Локальные переменные окружения
-├── docker-compose.yml    # Запуск PostgreSQL, Redis, Migration и самого приложения
-├── Dockerfile            # Multi-stage сборка Go приложения
-└── main.go               # Инициализация роутов и старт сервера
+│   ├── user_handler.go   # CRUD пользователей и профиль
+│   └── forecast_handler.go # Statements, Forecast, Events, Scenarios
+├── migrations/           # Миграции таблицы users
+├── repository/           # Репозиторий пользователей
+├── service/
+│   └── orchestrator.go   # Логика сборки пакета и оркестрации сервисов
+├── Dockerfile
+└── main.go
 ```
 
 ---
 
-## API Эндпоинты
+## Эндпоинты
 
-### Публичные (без токена):
+### 1. Авторизация (Публичные):
 | Метод | URL | Описание |
 |---|---|---|
-| `POST` | `/register` | Регистрация нового пользователя |
-| `POST` | `/login` | Вход, выдача Access (15 мин) и Refresh (7 дней) токенов + куки |
-| `POST` | `/refresh` | Выпуск нового Access токена по Refresh токену (из куки или body) |
-| `POST` | `/logout` | Удаление сессии из Redis и очистка кук |
-| `GET`  | `/health` | Проверка здоровья сервиса |
+| `POST` | `/register` | Регистрация (email, password, confirm_password, company_name) |
+| `POST` | `/login` | Вход, выдача токенов с `company_name` внутри JWT |
+| `POST` | `/refresh` | Продление сессии по refresh токену |
+| `POST` | `/logout` | Завершение сессии |
 
-### Защищенные (требуется `Authorization: Bearer <token>` или кука `access_token`):
+### 2. Оркестрация Прогноза (Требуется `Authorization: Bearer <token>`):
 | Метод | URL | Описание |
 |---|---|---|
-| `GET`    | `/me` | Профиль текущего авторизованного пользователя |
-| `GET`    | `/users` | Список всех пользователей (с кэшированием в Redis) |
-| `GET`    | `/users/:id` | Пользователь по ID (с кэшированием в Redis) |
-| `PATCH`  | `/users/:id` | Обновление `company_name` и/или `password` (сброс кэша) |
-| `DELETE` | `/users/:id` | Удаление пользователя (сброс кэша) |
+| `POST` | `/api/statements` | Загружает CSV выписке, архивирует старую линию, собирает пакет (выписка + планы) → считает прогноз → сохраняет в выписку |
+| `GET`  | `/api/forecast` | Читает уже посчитанные 30 дней и предупреждения из выписки. Не пересчитывает |
+| `POST` | `/api/events` | Сохраняет событие в планах и запускает полный пересчёт прогноза |
+| `POST` | `/api/scenarios` | Считает альтернативный сценарий «что если» (вторая линия). В выписке не сохраняет |
 
 ---
 
-## Примеры запросов
+## Переменные окружения
+```env
+PORT=8080
+JWT_SECRET=super_secret_jwt_key
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=admin
+DB_PASSWORD=secret123
+DB_NAME=auth_db
+REDIS_HOST=localhost
+REDIS_PORT=6379
 
-### 1. Регистрация (`POST /register`)
-```json
-{
-  "email": "developer@company.com",
-  "password": "strongPassword123",
-  "company_name": "Acme Corp"
-}
+# Микросервисы:
+LEDGER_SERVICE_URL=http://ledger:8081
+PLANNING_SERVICE_URL=http://planning:8082
+FORECAST_SERVICE_URL=http://forecast:8000
 ```
-
-### 2. Вход (`POST /login`)
-```json
-{
-  "email": "developer@company.com",
-  "password": "strongPassword123"
-}
-```
-**Ответ:**
-```json
-{
-  "access_token": "eyJhbGciOi...",
-  "refresh_token": "9a4f2b1c...",
-  "user": {
-    "id": 1,
-    "email": "developer@company.com",
-    "company_name": "Acme Corp",
-    "created_at": "2026-10-23T20:30:00Z",
-    "updated_at": "2026-10-23T20:30:00Z"
-  }
-}
-```
-
-### 3. Обновление токена (`POST /refresh`)
-Токен автоматически подхватывается из HttpOnly-куки `refresh_token`, либо может быть передан в JSON:
-```json
-{
-  "refresh_token": "9a4f2b1c..."
-}
-```
-
----
-
-## Запуск в Docker Compose
-
-```bash
-docker compose up --build -d
-```
-Сервис поднимет:
-- PostgreSQL на порту `5433` (чтобы не конфликтовать с другими проектами)
-- Redis на порту `6380`
-- Миграции базы данных
-- `gateway` API на порту `8080`

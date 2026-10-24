@@ -2,10 +2,12 @@ package main
 
 import (
 	"gateway/auth"
+	"gateway/client"
 	"gateway/database"
 	_ "gateway/docs"
 	"gateway/handlers"
 	"gateway/repository"
+	"gateway/service"
 	"log"
 	"os"
 	"time"
@@ -17,9 +19,9 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-// @title           User & Auth Service API
+// @title           Financial Forecast & Auth Gateway API
 // @version         1.0
-// @description     API сервис авторизации (JWT + Redis + Argon2id) и CRUD пользователей.
+// @description     Шлюз входа: авторизация (JWT + Redis), сборка финансового пакета и оркестрация сервисов выписки, планов и прогноза.
 // @host            localhost:8080
 // @BasePath        /
 // @securityDefinitions.apikey BearerAuth
@@ -40,6 +42,18 @@ func main() {
 	userRepo := repository.NewUserRepository(db)
 	authHandler := handlers.NewAuthHandler(userRepo)
 	userHandler := handlers.NewUserHandler(userRepo)
+
+	// External microservice addresses from environment
+	ledgerURL := getEnv("LEDGER_SERVICE_URL", "http://ledger:8081")
+	planningURL := getEnv("PLANNING_SERVICE_URL", "http://planning:8082")
+	forecastURL := getEnv("FORECAST_SERVICE_URL", "http://forecast:8000")
+
+	// Initialize orchestrator service & forecast handler
+	ledgerClient := client.NewLedgerClient(ledgerURL)
+	planningClient := client.NewPlanningClient(planningURL)
+	forecastClient := client.NewForecastClient(forecastURL)
+	orchestratorService := service.NewOrchestratorService(ledgerClient, planningClient, forecastClient)
+	forecastHandler := handlers.NewForecastHandler(orchestratorService)
 
 	router := gin.Default()
 
@@ -74,15 +88,29 @@ func main() {
 	router.POST("/refresh", authHandler.Refresh)
 	router.POST("/logout", authHandler.Logout)
 
-	// Protected routes
+	// Protected routes (require JWT)
 	protected := router.Group("/")
 	protected.Use(auth.AuthMiddleware())
 	{
+		// User profile & CRUD
 		protected.GET("/me", userHandler.GetMe)
 		protected.GET("/users", userHandler.GetAllUsers)
 		protected.GET("/users/:id", userHandler.GetUser)
 		protected.PATCH("/users/:id", userHandler.UpdateUser)
 		protected.DELETE("/users/:id", userHandler.DeleteUser)
+
+		// Statements & Forecast orchestration
+		protected.POST("/api/statements", forecastHandler.UploadStatement)
+		protected.POST("/statements", forecastHandler.UploadStatement)
+
+		protected.GET("/api/forecast", forecastHandler.GetForecast)
+		protected.GET("/forecast", forecastHandler.GetForecast)
+
+		protected.POST("/api/events", forecastHandler.CreateEvent)
+		protected.POST("/events", forecastHandler.CreateEvent)
+
+		protected.POST("/api/scenarios", forecastHandler.CalculateScenario)
+		protected.POST("/scenarios", forecastHandler.CalculateScenario)
 	}
 
 	port := os.Getenv("PORT")
@@ -90,8 +118,15 @@ func main() {
 		port = "8080"
 	}
 
-	log.Printf("Server starting on port :%s", port)
+	log.Printf("Gateway starting on port :%s", port)
 	if err := router.Run(":" + port); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
+}
+
+func getEnv(key, fallback string) string {
+	if val := os.Getenv(key); val != "" {
+		return val
+	}
+	return fallback
 }

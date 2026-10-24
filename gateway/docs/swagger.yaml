@@ -1,5 +1,16 @@
 basePath: /
 definitions:
+  dto.Alert:
+    properties:
+      chance:
+        type: number
+      date:
+        type: string
+      reason:
+        type: string
+      shortfall:
+        type: integer
+    type: object
   dto.CreateUserRequest:
     properties:
       company_name:
@@ -25,6 +36,34 @@ definitions:
       error:
         type: string
     type: object
+  dto.ForecastDay:
+    properties:
+      balance_high:
+        type: integer
+      balance_low:
+        type: integer
+      date:
+        type: string
+      expected_balance:
+        type: integer
+      inflow:
+        type: integer
+      outflow:
+        type: integer
+    type: object
+  dto.ForecastResponse:
+    properties:
+      alerts:
+        items:
+          $ref: '#/definitions/dto.Alert'
+        type: array
+      days:
+        items:
+          $ref: '#/definitions/dto.ForecastDay'
+        type: array
+      rough:
+        type: boolean
+    type: object
   dto.LoginRequest:
     properties:
       email:
@@ -44,6 +83,21 @@ definitions:
       user:
         $ref: '#/definitions/dto.UserInfo'
     type: object
+  dto.PlanEvent:
+    properties:
+      amount:
+        type: integer
+      category:
+        type: string
+      date:
+        type: string
+      is_income:
+        type: boolean
+    required:
+    - amount
+    - category
+    - date
+    type: object
   dto.RefreshTokenRequest:
     properties:
       refresh_token:
@@ -55,6 +109,26 @@ definitions:
         type: string
       refresh_token:
         type: string
+    type: object
+  dto.ScenarioRequest:
+    properties:
+      events:
+        items:
+          $ref: '#/definitions/dto.ScheduledPayment'
+        type: array
+    required:
+    - events
+    type: object
+  dto.ScheduledPayment:
+    properties:
+      amount:
+        type: integer
+      category:
+        type: string
+      date:
+        type: string
+      is_income:
+        type: boolean
     type: object
   dto.SuccessResponse:
     properties:
@@ -87,10 +161,144 @@ definitions:
 host: localhost:8080
 info:
   contact: {}
-  description: API сервис авторизации (JWT + Redis + Argon2id) и CRUD пользователей.
-  title: User & Auth Service API
+  description: 'Шлюз входа: авторизация (JWT + Redis), сборка финансового пакета и
+    оркестрация сервисов выписки, планов и прогноза.'
+  title: Financial Forecast & Auth Gateway API
   version: "1.0"
 paths:
+  /api/events:
+    post:
+      consumes:
+      - application/json
+      description: Сохраняет событие в планах и запускает полный пересчёт прогноза
+      parameters:
+      - description: Данные события
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PlanEvent'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ForecastResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Добавление запланированного события
+      tags:
+      - Forecast
+  /api/forecast:
+    get:
+      description: Читает уже посчитанные дни и предупреждения из выписки и отдаёт
+        сайту без пересчёта
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ForecastResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получение готового прогноза
+      tags:
+      - Forecast
+  /api/scenarios:
+    post:
+      consumes:
+      - application/json
+      description: Берёт финансовый пакет, добавляет гипотетические события и возвращает
+        вторую линию прогноза без сохранения в базу
+      parameters:
+      - description: Список гипотетических событий
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ScenarioRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ForecastResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Расчёт альтернативного сценария «что если»
+      tags:
+      - Forecast
+  /api/statements:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Принимает CSV, отдаёт его выписке, собирает данные из выписки и
+        планов, вызывает прогноз и сохраняет результат в выписку
+      parameters:
+      - description: CSV файл банковской выписки
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ForecastResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Загрузка банковской выписки CSV
+      tags:
+      - Forecast
   /login:
     post:
       consumes:

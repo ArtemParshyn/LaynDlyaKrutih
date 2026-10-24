@@ -15,6 +15,212 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/events": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Сохраняет событие в планах и запускает полный пересчёт прогноза",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Forecast"
+                ],
+                "summary": "Добавление запланированного события",
+                "parameters": [
+                    {
+                        "description": "Данные события",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.PlanEvent"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ForecastResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/forecast": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Читает уже посчитанные дни и предупреждения из выписки и отдаёт сайту без пересчёта",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Forecast"
+                ],
+                "summary": "Получение готового прогноза",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ForecastResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/scenarios": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Берёт финансовый пакет, добавляет гипотетические события и возвращает вторую линию прогноза без сохранения в базу",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Forecast"
+                ],
+                "summary": "Расчёт альтернативного сценария «что если»",
+                "parameters": [
+                    {
+                        "description": "Список гипотетических событий",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ScenarioRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ForecastResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/statements": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Принимает CSV, отдаёт его выписке, собирает данные из выписки и планов, вызывает прогноз и сохраняет результат в выписку",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Forecast"
+                ],
+                "summary": "Загрузка банковской выписки CSV",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "CSV файл банковской выписки",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ForecastResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/login": {
             "post": {
                 "description": "Проверяет email и пароль, возвращает Access и Refresh токены, а также сохраняет сессию в Redis",
@@ -439,6 +645,23 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dto.Alert": {
+            "type": "object",
+            "properties": {
+                "chance": {
+                    "type": "number"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "shortfall": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.CreateUserRequest": {
             "type": "object",
             "required": [
@@ -474,6 +697,49 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.ForecastDay": {
+            "type": "object",
+            "properties": {
+                "balance_high": {
+                    "type": "integer"
+                },
+                "balance_low": {
+                    "type": "integer"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "expected_balance": {
+                    "type": "integer"
+                },
+                "inflow": {
+                    "type": "integer"
+                },
+                "outflow": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.ForecastResponse": {
+            "type": "object",
+            "properties": {
+                "alerts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.Alert"
+                    }
+                },
+                "days": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ForecastDay"
+                    }
+                },
+                "rough": {
+                    "type": "boolean"
+                }
+            }
+        },
         "dto.LoginRequest": {
             "type": "object",
             "required": [
@@ -503,6 +769,28 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.PlanEvent": {
+            "type": "object",
+            "required": [
+                "amount",
+                "category",
+                "date"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "integer"
+                },
+                "category": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "is_income": {
+                    "type": "boolean"
+                }
+            }
+        },
         "dto.RefreshTokenRequest": {
             "type": "object",
             "properties": {
@@ -519,6 +807,37 @@ const docTemplate = `{
                 },
                 "refresh_token": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.ScenarioRequest": {
+            "type": "object",
+            "required": [
+                "events"
+            ],
+            "properties": {
+                "events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ScheduledPayment"
+                    }
+                }
+            }
+        },
+        "dto.ScheduledPayment": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "integer"
+                },
+                "category": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "is_income": {
+                    "type": "boolean"
                 }
             }
         },
@@ -581,8 +900,8 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost:8080",
 	BasePath:         "/",
 	Schemes:          []string{},
-	Title:            "User & Auth Service API",
-	Description:      "API сервис авторизации (JWT + Redis + Argon2id) и CRUD пользователей.",
+	Title:            "Financial Forecast & Auth Gateway API",
+	Description:      "Шлюз входа: авторизация (JWT + Redis), сборка финансового пакета и оркестрация сервисов выписки, планов и прогноза.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",
