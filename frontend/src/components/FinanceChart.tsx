@@ -4,6 +4,8 @@ import '../App.css';
 interface ChartPoint {
     date: string;
     balance: number;
+    low?: number;
+    high?: number;
 }
 
 interface FinanceChartProps {
@@ -26,6 +28,8 @@ const FinanceChart = ({ data }: FinanceChartProps) => {
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border-soft)" vertical={false} />
                     <XAxis dataKey="date" stroke="var(--text-muted)" />
                     <YAxis stroke="var(--text-muted)" />
+                    <Area type="monotone" dataKey="high" stroke="transparent" fill="transparent" />
+                    <Area type="monotone" dataKey="low" stroke="var(--text-faint)" strokeDasharray="4 4" fill="transparent" />
                     <Area type="monotone" dataKey="balance" stroke="var(--accent)" strokeWidth={3} fill="url(#colorBalance)" />
                 </AreaChart>
             </ResponsiveContainer>

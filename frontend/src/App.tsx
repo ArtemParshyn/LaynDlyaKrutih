@@ -11,6 +11,7 @@ import { CircleLoader } from 'react-spinners';
 import { RegistrationModal } from './registration';
 import NotFoundPage from './pages/NotFoundPage';
 import ErrorBoundary from "./components/ErrorBoundry/ErrorBoundry";
+import WearButton from './components/WearButton';
 
 const RegistrationModalFromContext = () => {
   const { isModalOpen, closeModal } = useAuth();
@@ -29,14 +30,23 @@ const AppContent = () => {
 
   if (loading) {
     return (
-        <div className='loader-wrap-global'>
-          <CircleLoader color="var(--accent)" size={50} />
+        <div className="App">
+          <Header />
+          <main className="main">
+            <div className="GuestPulse" aria-hidden="true">
+              <div className="skeleton skeleton-title" />
+              <div className="skeleton skeleton-chart" />
+              <div className="skeleton skeleton-text" />
+              <div className="skeleton skeleton-text" />
+            </div>
+          </main>
         </div>
     );
   }
 
   return (
       <div className="App">
+        <WearButton />
         <Header />
 
         <main className='main'>
@@ -46,11 +56,7 @@ const AppContent = () => {
 
               <Route
                   path='/'
-                  element={
-                    isAuthenticated
-                        ? <Dashboard />
-                        : <div className="LandingPage"><h2>Войдите, чтобы начать анализ</h2></div>
-                  }
+                  element={<Dashboard />}
               />
 
               <Route path='/profile' element={<ProtectedRoute> <ProfilePage /> </ProtectedRoute>} />

@@ -36,16 +36,48 @@ const RegistrationModal = ({
 
   const [activeTab, setActiveTab] = useState<'login' | 'register' | null>(initialTab || 'login');
 
+  const [demo, setDemo] = useState(false);
+
   useEffect(() => {
     if (!isOpen) return;
     setActiveTab(initialTab || 'login');
+    setError('');
+    setDemo(false);
+    if (isAuthenticated) return;
     setEmail('');
     setPass('');
     setCompanyName('');
     setPass1('');
     setPass2('');
-    setError('');
-  }, [isOpen, initialTab]);
+  }, [isOpen, initialTab, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'register' || isAuthenticated) return;
+    setCompanyName('');
+    setEmail('');
+    setPass1('');
+    setPass2('');
+    setDemo(true);
+
+    const company = 'Северная верфь';
+    const mail = 'example@mail.com';
+    const password = 'secret1';
+    let frame = 0;
+    const timer = window.setInterval(() => {
+      frame += 1;
+      setCompanyName(company.slice(0, frame));
+      setEmail(mail.slice(0, Math.max(0, frame - company.length)));
+      const typedPass = password.slice(0, Math.max(0, frame - company.length - mail.length));
+      setPass1(typedPass);
+      setPass2(typedPass);
+      if (frame >= company.length + mail.length + password.length) {
+        window.clearInterval(timer);
+        setDemo(false);
+      }
+    }, 55);
+
+    return () => window.clearInterval(timer);
+  }, [isOpen, activeTab, isAuthenticated]);
 
   const isLoginDisabled = !email.trim() || !pass;
   const isRegisterDisabled =
@@ -65,6 +97,7 @@ const RegistrationModal = ({
   };
 
   const handleRegister = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setDemo(false);
     setError('');
     const target = event.target;
     if (target.name === 'companyName') setCompanyName(target.value);
@@ -103,9 +136,12 @@ const RegistrationModal = ({
           Регистрация
         </button>
 
-        <button className="Button" onClick={onClose} title="Закрыть">
-          ❌
+        <button className="Button modal-close" onClick={onClose} title="Закрыть">
+          ✕
         </button>
+      </div>
+
+      <div className="modal-fields">
 
         {activeTab === 'login' && (
           <>
@@ -151,7 +187,7 @@ const RegistrationModal = ({
           <>
             <input
               type="text"
-              placeholder="Название компании / Организация"
+              placeholder="Название компании"
               value={companyName}
               onChange={handleRegister}
               name="companyName"
@@ -167,7 +203,7 @@ const RegistrationModal = ({
             />
             <input
               type="password"
-              placeholder="Пароль (минимум 6 символов)"
+              placeholder="Пароль"
               value={pass1}
               onChange={handleRegister}
               name="pass1"
@@ -175,7 +211,7 @@ const RegistrationModal = ({
             />
             <input
               type="password"
-              placeholder="Подтвердите пароль"
+              placeholder="Повторите пароль"
               value={pass2}
               onChange={handleRegister}
               name="pass2"
@@ -183,7 +219,7 @@ const RegistrationModal = ({
             />
             <button
               className="Button"
-              disabled={isRegisterDisabled || loading}
+              disabled={!demo && (isRegisterDisabled || loading)}
               onClick={async () => {
                 setError('');
                 setLoading(true);

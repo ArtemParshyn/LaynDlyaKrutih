@@ -1,71 +1,62 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import '../App.css';
 import FinanceChart from '../components/FinanceChart';
 import { toast } from 'sonner';
-import { parseCSV, Transaction } from '../utils/csv';
-import { forecastBalance, CashGap, ForecastPoint } from '../utils/forecast';
+import { Transaction } from '../utils/csv';
+import { statementToTransactions, toBackendStatement } from '../utils/statement';
+import { getForecast, uploadStatementText, ForecastResponse, rubles } from '../api/forecast';
 import AnalyzedTable from "../components/AnalyzedTable";
 import PlasticCard from '../components/BusinessCard/BuisnessCard';
 
 const Dashboard = () => {
-    const { user } = useAuth();
+    const { user, loading, openModal } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [uploadTransactions, setUploadTransactions] = useState<Transaction[]>([]);
 
     // Храним данные графика и найденные разрывы
-    const [chartData, setChartData] = useState<ForecastPoint[] | null>(null);
-    const [gaps, setGaps] = useState<CashGap[]>([]);
-    const analysisTimer = useRef<number | null>(null);
+    const [forecast, setForecast] = useState<ForecastResponse | null>(null);
+
+    const showForecast = (next: ForecastResponse, transactions?: Transaction[]) => {
+        setForecast(next);
+        if (transactions) setUploadTransactions(transactions);
+        setIsLoading(false);
+    };
 
     useEffect(() => {
-        return () => {
-            if (analysisTimer.current) window.clearTimeout(analysisTimer.current);
-        };
-    }, []);
+        if (!user) return;
+        getForecast()
+            .then((saved) => {
+                if (saved.days?.length) setForecast(saved);
+            })
+            .catch(() => {});
+    }, [user]);
 
-    // Общая функция для обработки текста (вызывается и для файла, и для демо)
-    const processData = (text: string) => {
+    const processData = async (text: string) => {
         try {
-            const transactions = parseCSV(text);
-
-            if (transactions.length === 0) {
-                throw new Error('Файл пуст или неверный формат');
-            }
-
-            // Считаем прогноз. Стартовый баланс возьмем 50000
-            const { forecast, gaps: detectedGaps } = forecastBalance(transactions, 50000);
-
-            // Небольшая задержка для красоты (имитация работы ИИ)
-            if (analysisTimer.current) window.clearTimeout(analysisTimer.current);
-            analysisTimer.current = window.setTimeout(() => {
-                setChartData(forecast);
-                setGaps(detectedGaps);
-                setUploadTransactions(transactions);
-                setIsLoading(false);
-                toast.success('Анализ завершен!');
-            }, 1500);
-
+            const statement = toBackendStatement(text);
+            const transactions = statementToTransactions(statement);
+            if (transactions.length === 0) throw new Error('Файл пуст или неверный формат');
+            showForecast(await uploadStatementText(statement), transactions);
+            toast.success('Выписка отправлена, прогноз получен');
         } catch (err) {
-            toast.error(err instanceof Error ? err.message : 'Ошибка парсинга файла');
+            toast.error(err instanceof Error ? err.message : 'Ошибка загрузки выписки');
             setIsLoading(false);
-            setUploadTransactions([]);
         }
     };
 
     // Обработка загруженного файла
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         setIsLoading(true);
         const reader = new FileReader();
-
-        reader.onload = (event) => {
-            const text = event.target?.result as string;
-            processData(text);
+        reader.onload = (event) => processData(String(event.target?.result || ''));
+        reader.onerror = () => {
+            toast.error('Не удалось прочитать файл');
+            setIsLoading(false);
         };
-
         reader.readAsText(file);
     };
 
@@ -76,7 +67,7 @@ const Dashboard = () => {
             const response = await fetch('/data/financial_data.csv');
             if (!response.ok) throw new Error('Демо-файл не найден');
             const text = await response.text();
-            processData(text);
+            await processData(text);
         } catch (err) {
             toast.error('Не удалось загрузить демо-файл. Проверьте папку public/data');
             setIsLoading(false);
@@ -85,8 +76,7 @@ const Dashboard = () => {
 
     // Сброс к начальному экрану
     const handleReset = () => {
-        setChartData(null);
-        setGaps([]);
+        setForecast(null);
         setUploadTransactions([]);
     };
 
@@ -99,15 +89,25 @@ const Dashboard = () => {
                     <h1>Финансовый пульс</h1>
                     <p>Здравствуйте, {user?.company_name || user?.name || 'Гость'}. Ваш прогноз готов.</p>
                 </div>
-                {chartData && (
+                {!!forecast?.days?.length && (
                     <button className="Button" onClick={handleReset}>
                         Загрузить другой файл
                     </button>
                 )}
             </div>
 
+            {!user && !loading && (
+                <div className="GuestPulse" aria-hidden="true">
+                    <div className="skeleton skeleton-title" />
+                    <div className="skeleton skeleton-chart" />
+                    <div className="skeleton skeleton-text" />
+                    <div className="skeleton skeleton-text" />
+                    <button className="Button" onClick={openModal}>Войти, чтобы увидеть пульс</button>
+                </div>
+            )}
+
             {/* ЗОНА ЗАГРУЗКИ */}
-            {!chartData && !isLoading && (
+            {user && !forecast?.days?.length && !isLoading && (
                 <div className="UploadZone">
                     <div className="UploadIcon">📊</div>
                     <h2>Загрузите выписку для анализа</h2>
@@ -136,15 +136,15 @@ const Dashboard = () => {
             )}
 
             {/* РЕЗУЛЬТАТЫ (Сетка) */}
-            {chartData && !isLoading && (
+            {forecast?.days?.length && !isLoading ? (
                 <div className="ResultsGrid">
 
                     {/* Карточка бизнеса (Правая колонка, верх) */}
                     <div className="GridCard">
                         <PlasticCard
                             companyName={user?.company_name || user?.name || 'Моя компания'}
-                            ostatok={chartData[chartData.length - 1]?.balance || 0}
-                            cardStatus={gaps.length > 0 ? 'Риск разрыва' : 'Стабилен'}
+                            ostatok={rubles(forecast.days[forecast.days.length - 1]?.expected_balance || 0)}
+                            cardStatus={forecast.alerts?.length ? 'Риск разрыва' : 'Стабилен'}
                         />
                     </div>
 
@@ -157,7 +157,8 @@ const Dashboard = () => {
                     {/* График (На всю ширину, или по центру) */}
                     <div className="GridChart">
                         {/* Умный баннер (Перенесен над графиком для логики) */}
-                        {gaps.length > 0 ? (
+                        {forecast.rough && <p>Прогноз ориентировочный: истории меньше 30 дней.</p>}
+                        {!!forecast.alerts?.length ? (
                             <div className="SuccessBanner" style={{
                                 borderColor: 'var(--error)',
                                 color: 'var(--error)',
@@ -165,7 +166,7 @@ const Dashboard = () => {
                                 marginBottom: '20px',
                                 width: '100%'
                             }}>
-                                ⚠️ Внимание! Обнаружено {gaps.length} риск(ов) кассового разрыва.
+                                ⚠️ Внимание! Обнаружено {forecast.alerts.length} риск(ов) кассового разрыва.
                             </div>
                         ) : (
                             <div className="SuccessBanner" style={{ marginBottom: '20px', width: '100%' }}>
@@ -173,27 +174,32 @@ const Dashboard = () => {
                             </div>
                         )}
 
-                        <FinanceChart data={chartData} />
+                        <FinanceChart data={forecast.days.map((day) => ({
+                            date: day.date,
+                            balance: rubles(day.expected_balance),
+                            low: rubles(day.balance_low),
+                            high: rubles(day.balance_high),
+                        }))} />
                     </div>
 
                     {/* Предупреждения (Снизу на всю ширину) */}
-                    {gaps.length > 0 && (
+                    {!!forecast.alerts?.length && (
                         <div className="GridWarnings">
                             <h3 className="SectionTitle">Предупреждения о разрывах:</h3>
                             <div className="GapList">
-                                {gaps.map((gap, idx) => (
-                                    <div key={idx} className="GapCard">
+                                {forecast.alerts.map((alert) => (
+                                    <div key={alert.date + alert.reason} className="GapCard">
                                         <div>
                                             <div className="GapCard-date">
-                                                {gap.date}
+                                                {alert.date}
                                             </div>
                                             <div className="GapCard-note">
-                                                Нехватка средств для обязательных платежей
+                                                {alert.reason}
                                             </div>
                                         </div>
                                         <div className="GapCard-sum">
                                             <div className="GapCard-amount">
-                                                -{gap.shortage.toLocaleString('ru-RU')} ₽
+                                                -{rubles(alert.shortfall).toLocaleString('ru-RU')} ₽
                                             </div>
                                         </div>
                                     </div>
@@ -203,7 +209,7 @@ const Dashboard = () => {
                     )}
 
                 </div>
-            )}
+            ) : null}
         </div>
     );
 };

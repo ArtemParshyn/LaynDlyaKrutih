@@ -152,7 +152,7 @@ export async function apiClient<T>(
 
   // 4xx (валидация, конфликт 409 и т.п.)
   if (!res.ok) {
-    let msg = 'Произошла ошибка';
+    let msg = `Ошибка запроса (${res.status})`;
     try {
       const data = await res.json();
       msg = data.error || data.message || msg;
