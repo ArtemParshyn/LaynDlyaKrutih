@@ -120,17 +120,20 @@ func ParseCSV(data []byte, userID uint64) ([]model.Operation, error) {
 			}
 		}
 
-		category := "Прочее"
+		category := ""
 		if categoryCol != -1 && categoryCol < len(row) {
-			cat := strings.TrimSpace(row[categoryCol])
-			if cat != "" {
-				category = cat
-			}
+			category = strings.TrimSpace(row[categoryCol])
 		}
 
 		description := ""
 		if descCol != -1 && descCol < len(row) {
 			description = strings.TrimSpace(row[descCol])
+		}
+
+		// If category from CSV is empty or "Прочее", classify using smart regex patterns
+		if category == "" || strings.EqualFold(category, "прочее") {
+			isIncome := kopecks > 0
+			category = ClassifyCategory(description, isIncome)
 		}
 
 		operations = append(operations, model.Operation{
