@@ -95,3 +95,37 @@ func TestParseCSV_BadFileRejection(t *testing.T) {
 		t.Fatalf("expected missing header error, got %v", err)
 	}
 }
+
+func TestParseCSV_LeadingMetadataRows(t *testing.T) {
+	csvData := `Выписка по счету 40702810000000000001
+Период: 01.09.2026 - 30.09.2026
+ООО Ромашка
+
+Дата;Сумма;Тип;Категория;Описание
+05.09.2026;150000,00;Доход;Выручка;Поступление по договору 10
+`
+	ops, err := ParseCSV([]byte(csvData), 1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(ops) != 1 {
+		t.Fatalf("expected 1 operation, got %d", len(ops))
+	}
+	if ops[0].Amount != 15000000 {
+		t.Errorf("expected 15000000, got %d", ops[0].Amount)
+	}
+}
+
+func TestParseCSV_TabSeparated(t *testing.T) {
+	tsvData := "Дата\tСумма\tТип\tКатегория\tОписание\n2026-09-10\t500.00\tРасход\tАренда\tОфис\n"
+	ops, err := ParseCSV([]byte(tsvData), 1)
+	if err != nil {
+		t.Fatalf("unexpected error for TSV: %v", err)
+	}
+	if len(ops) != 1 {
+		t.Fatalf("expected 1 op, got %d", len(ops))
+	}
+	if ops[0].Amount != -50000 {
+		t.Errorf("expected -50000, got %d", ops[0].Amount)
+	}
+}
