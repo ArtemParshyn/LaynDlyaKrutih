@@ -66,6 +66,7 @@ func ParseCSV(rawData []byte, userID uint64) ([]model.Operation, error) {
 	var bestRecords [][]string
 	bestHeaderIdx := -1
 	dateCol, amountCol, typeCol, categoryCol, descCol := -1, -1, -1, -1, -1
+	creditCol, debitCol := -1, -1
 
 	for _, delim := range delimiters {
 		reader := csv.NewReader(bytes.NewReader(data))
@@ -80,11 +81,12 @@ func ParseCSV(rawData []byte, userID uint64) ([]model.Operation, error) {
 		}
 
 		for i, row := range records {
-			d, a, t, c, desc := detectColumns(row)
-			if d != -1 && a != -1 {
+			d, a, t, c, desc, credit, debit := detectColumns(row)
+			if d != -1 && (a != -1 || credit != -1 || debit != -1) {
 				bestRecords = records
 				bestHeaderIdx = i
 				dateCol, amountCol, typeCol, categoryCol, descCol = d, a, t, c, desc
+				creditCol, debitCol = credit, debit
 				break
 			}
 		}
@@ -109,12 +111,23 @@ func ParseCSV(rawData []byte, userID uint64) ([]model.Operation, error) {
 			continue
 		}
 
-		if dateCol >= len(row) || amountCol >= len(row) {
+		if dateCol >= len(row) || (amountCol >= 0 && amountCol >= len(row)) {
 			return nil, fmt.Errorf("row %d has missing date or amount column", rowIdx+1)
 		}
 
 		dateStr := strings.TrimSpace(row[dateCol])
-		amountStr := strings.TrimSpace(row[amountCol])
+		amountStr := ""
+		if amountCol >= 0 {
+			amountStr = strings.TrimSpace(row[amountCol])
+		} else {
+			credit, debit := cell(row, creditCol), cell(row, debitCol)
+			switch {
+			case credit != "" && credit != "0" && credit != "0.00":
+				amountStr = credit
+			case debit != "":
+				amountStr = "-" + strings.TrimPrefix(debit, "-")
+			}
+		}
 
 		if dateStr == "" {
 			return nil, fmt.Errorf("row %d has empty date", rowIdx+1)
@@ -176,27 +189,41 @@ func ParseCSV(rawData []byte, userID uint64) ([]model.Operation, error) {
 	return operations, nil
 }
 
-func detectColumns(row []string) (dateCol, amountCol, typeCol, categoryCol, descCol int) {
-	dateCol, amountCol, typeCol, categoryCol, descCol = -1, -1, -1, -1, -1
+func detectColumns(row []string) (dateCol, amountCol, typeCol, categoryCol, descCol, creditCol, debitCol int) {
+	dateCol, amountCol, typeCol, categoryCol, descCol, creditCol, debitCol = -1, -1, -1, -1, -1, -1, -1
 
 	for i, col := range row {
 		clean := strings.ToLower(strings.TrimSpace(col))
 		clean = strings.TrimPrefix(clean, "\ufeff")
+		clean = strings.ReplaceAll(clean, "_", " ")
 
 		switch {
-		case strings.Contains(clean, "дата") || clean == "date" || strings.Contains(clean, "время") || strings.Contains(clean, "день") || clean == "dt":
-			dateCol = i
-		case strings.Contains(clean, "сумма") || clean == "amount" || clean == "sum" || strings.Contains(clean, "руб") || strings.Contains(clean, "размер") || clean == "total":
+		case strings.Contains(clean, "дата") || strings.Contains(clean, "date") || strings.Contains(clean, "время") || strings.Contains(clean, "день") || clean == "dt":
+			if dateCol == -1 || strings.Contains(clean, "операц") || strings.Contains(clean, "operation") {
+				dateCol = i
+			}
+		case strings.Contains(clean, "кредит") || strings.Contains(clean, "credit") || strings.Contains(clean, "приход") || strings.Contains(clean, "поступлен"):
+			creditCol = i
+		case strings.Contains(clean, "дебет") || strings.Contains(clean, "debit") || strings.Contains(clean, "расход") || strings.Contains(clean, "списан"):
+			debitCol = i
+		case strings.Contains(clean, "сумма") || clean == "amount" || clean == "sum" || strings.Contains(clean, "руб") || strings.Contains(clean, "размер") || clean == "total" || strings.Contains(clean, "amount"):
 			amountCol = i
-		case strings.Contains(clean, "тип") || clean == "type" || strings.Contains(clean, "направлен") || strings.Contains(clean, "вид"):
+		case strings.Contains(clean, "тип") || clean == "type" || strings.Contains(clean, "направлен") || strings.Contains(clean, "вид") || strings.Contains(clean, "direction"):
 			typeCol = i
 		case strings.Contains(clean, "категори") || clean == "category" || strings.Contains(clean, "статья"):
 			categoryCol = i
-		case strings.Contains(clean, "описани") || clean == "description" || strings.Contains(clean, "назначени") || strings.Contains(clean, "детал") || strings.Contains(clean, "purpose") || strings.Contains(clean, "комментар") || strings.Contains(clean, "платеж"):
+		case strings.Contains(clean, "описани") || strings.Contains(clean, "description") || strings.Contains(clean, "назначени") || strings.Contains(clean, "детал") || strings.Contains(clean, "purpose") || strings.Contains(clean, "комментар") || strings.Contains(clean, "платеж") || strings.Contains(clean, "контрагент") || strings.Contains(clean, "counterparty"):
 			descCol = i
 		}
 	}
 	return
+}
+
+func cell(row []string, index int) string {
+	if index < 0 || index >= len(row) {
+		return ""
+	}
+	return strings.TrimSpace(row[index])
 }
 
 func isRowEmpty(row []string) bool {

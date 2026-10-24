@@ -17,6 +17,13 @@ export interface ForecastAlert {
   reason: string;
 }
 
+export interface RarePayment {
+  amount: number;
+  is_income: boolean;
+  seen: number;
+  roughly_every_days: number;
+}
+
 // Совпадает с ledger/dto.ScheduledPayment и gateway/dto.ScheduledPayment.
 // amount — копейки. Категорию и признак дохода считает бэкенд, фронт их не выводит.
 export interface ScheduledPayment {
@@ -26,11 +33,27 @@ export interface ScheduledPayment {
   category: string;
 }
 
+export interface StatementOperation {
+  date: string;
+  amount: number;
+  category: string;
+  description: string;
+  is_income: boolean;
+}
+
+export interface BalancePoint {
+  date: string;
+  balance: number;
+}
+
 export interface ForecastResponse {
   days: ForecastDay[];
   alerts: ForecastAlert[];
   rough: boolean;
   recurring_payments: ScheduledPayment[];
+  operations?: StatementOperation[];
+  history?: BalancePoint[];
+  rare_payments?: RarePayment[];
 }
 
 export const uploadStatement = (file: File) => {

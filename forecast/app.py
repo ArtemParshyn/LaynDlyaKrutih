@@ -19,5 +19,5 @@ def forecast(request: ForecastRequest) -> ForecastResponse:
     except NotEnoughData as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
 
-    days, alerts = build(request, rough=not enough)
-    return ForecastResponse(days=days, alerts=alerts, rough=not enough)
+    days, alerts, rare = build(request, rough=not enough)
+    return ForecastResponse(days=days, alerts=alerts, rough=not enough, rare_payments=rare)

@@ -80,6 +80,8 @@ func (s *OrchestratorService) Recalculate(ctx context.Context, userID uint) (*dt
 	if forecastResp.RecurringPayments == nil {
 		forecastResp.RecurringPayments = []dto.ScheduledPayment{}
 	}
+	forecastResp.Operations = s.recentOperations(ctx, userID)
+	forecastResp.History = s.balanceHistory(ctx, userID)
 
 	// Append user-defined recurring planned events to recurring payments
 	if rawEvents, err := s.planning.GetEventsList(ctx, userID); err == nil {
@@ -165,6 +167,8 @@ func (s *OrchestratorService) GetForecast(ctx context.Context, userID uint) (*dt
 	if resp.RecurringPayments == nil {
 		resp.RecurringPayments = []dto.ScheduledPayment{}
 	}
+	resp.Operations = s.recentOperations(ctx, userID)
+	resp.History = s.balanceHistory(ctx, userID)
 
 	ledgerData, err := s.ledger.GetData(ctx, userID)
 	if err == nil && ledgerData != nil && len(ledgerData.RecurringPayments) > 0 {
@@ -186,6 +190,22 @@ func (s *OrchestratorService) GetForecast(ctx context.Context, userID uint) (*dt
 	}
 
 	return resp, nil
+}
+
+func (s *OrchestratorService) balanceHistory(ctx context.Context, userID uint) []dto.BalancePoint {
+	stored, err := s.ledger.GetForecast(ctx, userID)
+	if err != nil || stored == nil || len(stored.History) == 0 {
+		return []dto.BalancePoint{}
+	}
+	return stored.History
+}
+
+func (s *OrchestratorService) recentOperations(ctx context.Context, userID uint) []dto.Operation {
+	stored, err := s.ledger.GetForecast(ctx, userID)
+	if err != nil || stored == nil || len(stored.Operations) == 0 {
+		return []dto.Operation{}
+	}
+	return stored.Operations
 }
 
 // GetEventsList retrieves raw user-created events from Planning service

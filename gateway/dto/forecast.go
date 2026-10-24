@@ -36,11 +36,36 @@ type Alert struct {
 	Reason    string  `json:"reason"`
 }
 
+// RarePayment is a large transfer seen more than once, but not often enough
+// to be part of the daily flow. It is not stored: ledger derives it on read.
+type RarePayment struct {
+	Amount            int64 `json:"amount"`
+	IsIncome          bool  `json:"is_income"`
+	Seen              int   `json:"seen"`
+	RoughlyEveryDays  int   `json:"roughly_every_days"`
+}
+
+type Operation struct {
+	Date        string `json:"date"`
+	Amount      int64  `json:"amount"`
+	Category    string `json:"category"`
+	Description string `json:"description"`
+	IsIncome    bool   `json:"is_income"`
+}
+
+type BalancePoint struct {
+	Date    string `json:"date"`
+	Balance int64  `json:"balance"`
+}
+
 type ForecastResponse struct {
 	Days              []ForecastDay      `json:"days"`
 	Alerts            []Alert            `json:"alerts"`
 	Rough             bool               `json:"rough"`
 	RecurringPayments []ScheduledPayment `json:"recurring_payments"`
+	Operations        []Operation        `json:"operations"`
+	History           []BalancePoint     `json:"history"`
+	RarePayments      []RarePayment      `json:"rare_payments"`
 }
 
 // LedgerData is received from the Ledger (выписка) service

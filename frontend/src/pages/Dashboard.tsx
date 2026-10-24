@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import '../App.css';
 import FinanceChart from '../components/FinanceChart';
 import { toast } from 'sonner';
-import { getForecast, uploadStatement, ForecastResponse, ScheduledPayment, rubles } from '../api/forecast';
+import { getForecast, uploadStatement, ForecastAlert, ForecastResponse, ScheduledPayment, StatementOperation, rubles } from '../api/forecast';
 import PlasticCard from '../components/BusinessCard/BuisnessCard';
 
 const Dashboard = () => {
@@ -14,6 +14,7 @@ const Dashboard = () => {
     // Храним данные графика и найденные разрывы
     const storageKey = `forecast:${user?.id || 'guest'}`;
     const [forecast, setForecast] = useState<ForecastResponse | null>(null);
+    const [showBounds, setShowBounds] = useState(false);
 
     const recurringPayments = (data: ForecastResponse | null): ScheduledPayment[] =>
         data?.recurring_payments || [];
@@ -31,8 +32,26 @@ const Dashboard = () => {
         return [...groups.values()];
     };
 
+    const nearestGap = (alerts: ForecastAlert[] | undefined): ForecastAlert | null => {
+        if (!alerts?.length) {
+            return null;
+        }
+        return [...alerts].sort((left, right) => left.date.localeCompare(right.date))[0];
+    };
+
+    const chanceWord = (chance: number) => {
+        if (chance >= 0.7) {
+            return 'почти наверняка';
+        }
+        if (chance >= 0.3) {
+            return 'заметный шанс';
+        }
+        return 'шанс небольшой';
+    };
+
     const showForecast = (next: ForecastResponse) => {
         setForecast(next);
+        setShowBounds(false);
         setIsLoading(false);
     };
 
@@ -46,7 +65,7 @@ const Dashboard = () => {
                 await new Promise((resolve) => window.setTimeout(resolve, 2000));
                 try {
                     const saved = await getForecast();
-                    if (saved.days?.length) return saved;
+                    if ((saved.days?.length || 0) >= 30) return saved;
                 } catch {
                     // сервер ещё считает
                 }
@@ -56,7 +75,7 @@ const Dashboard = () => {
         try {
             const uploaded = uploadStatement(file).catch(() => null);
             const ready = await Promise.race([
-                uploaded.then((saved) => (saved?.days?.length ? saved : null)),
+                uploaded.then((saved) => ((saved?.days?.length || 0) >= 30 ? saved : null)),
                 waitForForecast(),
             ]);
             if (!ready) throw new Error('Прогноз ещё не готов. Обновите страницу чуть позже.');
@@ -85,7 +104,7 @@ const Dashboard = () => {
     // Сброс к начальному экрану
     const handleReset = () => {
         setForecast(null);
-
+        setShowBounds(false);
     };
 
     return (
@@ -185,8 +204,8 @@ const Dashboard = () => {
                     {/* График (На всю ширину, или по центру) */}
                     <div className="GridChart">
                         {/* Умный баннер (Перенесен над графиком для логики) */}
-                        {forecast.rough && <p>Прогноз ориентировочный: истории меньше 30 дней.</p>}
-                        {!!forecast.alerts?.length ? (
+                        {showBounds && forecast.rough && <p>Прогноз ориентировочный: истории меньше 30 дней.</p>}
+                        {showBounds && nearestGap(forecast.alerts) && (
                             <div className="SuccessBanner" style={{
                                 borderColor: 'var(--error)',
                                 color: 'var(--error)',
@@ -194,24 +213,105 @@ const Dashboard = () => {
                                 marginBottom: '20px',
                                 width: '100%'
                             }}>
-                                ⚠️ Внимание! Обнаружено {forecast.alerts.length} риск(ов) кассового разрыва.
+                                Ближайший разрыв {nearestGap(forecast.alerts)?.date}: не хватает около {rubles(nearestGap(forecast.alerts)?.shortfall || 0).toLocaleString('ru-RU')} ₽, {chanceWord(nearestGap(forecast.alerts)?.chance || 0)}.
                             </div>
-                        ) : (
+                        )}
+                        {showBounds && !forecast.alerts?.length && (
                             <div className="SuccessBanner" style={{ marginBottom: '20px', width: '100%' }}>
-                                ✅ Кассовых разрывов не обнаружено. Прогноз стабилен.
+                                Кассовых разрывов на 30 дней не видно.
                             </div>
                         )}
 
-                        <FinanceChart data={forecast.days.map((day) => ({
-                            date: day.date,
-                            balance: rubles(day.expected_balance),
-                            low: rubles(day.balance_low),
-                            high: rubles(day.balance_high),
-                        }))} />
+                        <FinanceChart
+                            showBounds={showBounds}
+                            history={(forecast.history?.length
+                                ? forecast.history
+                                : [{ date: forecast.days[0].date, balance: forecast.days[0].expected_balance }]
+                            ).map((point) => ({
+                                date: point.date,
+                                balance: rubles(point.balance),
+                            }))}
+                            forecast={forecast.days.map((day) => ({
+                                date: day.date,
+                                balance: rubles(day.expected_balance),
+                                low: rubles(day.balance_low),
+                                high: rubles(day.balance_high),
+                            }))}
+                        />
+                        {showBounds && !!forecast.rare_payments?.length && (
+                            <div className="GapList" style={{ marginTop: '12px' }}>
+                                {forecast.rare_payments.map((payment) => (
+                                    <div key={`${payment.is_income}:${payment.amount}`} className="GapCard">
+                                        <div>
+                                            <div className="GapCard-date">
+                                                Редкий {payment.is_income ? 'приход' : 'платёж'} не входит в ежедневный расход
+                                            </div>
+                                            <div className="GapCard-note">
+                                                около {rubles(payment.amount).toLocaleString('ru-RU')} ₽, замечен {payment.seen} раза за последние три месяца
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {!showBounds && (
+                            <button className="Button" onClick={() => setShowBounds(true)}>
+                                Обработать
+                            </button>
+                        )}
+                    </div>
+
+                    {showBounds && (
+                        <div className="GridForecast">
+                            <h3 className="SectionTitle">Границы прогноза</h3>
+                            <div className="GapList">
+                                {forecast.days.map((day) => (
+                                    <div key={day.date} className="GapCard">
+                                        <div>
+                                            <div className="GapCard-date">{day.date}</div>
+                                            <div className="GapCard-note">
+                                                ожидание {rubles(day.expected_balance).toLocaleString('ru-RU')} ₽
+                                            </div>
+                                        </div>
+                                        <div className="GapCard-sum">
+                                            <div className="Amount--plus">
+                                                верх {rubles(day.balance_high).toLocaleString('ru-RU')} ₽
+                                            </div>
+                                            <div className="Amount--minus">
+                                                низ {rubles(day.balance_low).toLocaleString('ru-RU')} ₽
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="GridOps">
+                        <h3 className="SectionTitle">Последние операции</h3>
+                        {(forecast.operations || []).length ? (
+                            <div className="GapList">
+                                {(forecast.operations || []).slice(0, 10).map((op: StatementOperation, index) => (
+                                    <div key={`${op.date}:${op.description}:${index}`} className="GapCard">
+                                        <div>
+                                            <div className="GapCard-date">{op.date}</div>
+                                            <div className="GapCard-note">{op.category || op.description || 'Без категории'}</div>
+                                        </div>
+                                        <div className="GapCard-sum">
+                                            <div className={op.is_income ? 'Amount--plus' : 'Amount--minus'}>
+                                                {op.is_income ? '+' : '−'}{rubles(Math.abs(op.amount)).toLocaleString('ru-RU')} ₽
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="GapCard-note">Операций в выписке пока нет.</p>
+                        )}
                     </div>
 
                     {/* Предупреждения (Снизу на всю ширину) */}
-                    {!!forecast.alerts?.length && (
+                    {showBounds && !!forecast.alerts?.length && (
                         <div className="GridWarnings">
                             <h3 className="SectionTitle">Предупреждения о разрывах:</h3>
                             <div className="GapList">

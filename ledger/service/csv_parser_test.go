@@ -116,6 +116,25 @@ func TestParseCSV_LeadingMetadataRows(t *testing.T) {
 	}
 }
 
+func TestParseCSV_OperationDateAndDirection(t *testing.T) {
+	csvData := "inn;operation_date;direction;amount;counterparty;purpose\n" +
+		"7701234567;2026-09-01;in;1500.50;ООО Ромашка;Оплата по договору\n" +
+		"7701234567;2026-09-02;out;400.00;Арендодатель;Аренда офиса\n"
+	ops, err := ParseCSV([]byte(csvData), 7)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(ops) != 2 {
+		t.Fatalf("expected 2 operations, got %d", len(ops))
+	}
+	if ops[0].Amount != 150050 {
+		t.Errorf("expected 150050, got %d", ops[0].Amount)
+	}
+	if ops[1].Amount != -40000 {
+		t.Errorf("expected -40000, got %d", ops[1].Amount)
+	}
+}
+
 func TestParseCSV_TabSeparated(t *testing.T) {
 	tsvData := "Дата\tСумма\tТип\tКатегория\tОписание\n2026-09-10\t500.00\tРасход\tАренда\tОфис\n"
 	ops, err := ParseCSV([]byte(tsvData), 1)

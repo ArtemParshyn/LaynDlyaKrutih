@@ -260,8 +260,61 @@ func (s *LedgerService) GetForecast(userID uint64) (*dto.ForecastPayload, error)
 	}
 
 	return &dto.ForecastPayload{
-		Days:   dayDTOs,
-		Alerts: alertDTOs,
-		Rough:  rough,
+		Days:         dayDTOs,
+		Alerts:       alertDTOs,
+		Rough:        rough,
+		Operations:   s.recentOperations(userID, 10),
+		History:      s.balanceHistory(userID),
+		RarePayments: s.rarePayments(userID),
 	}, nil
+}
+
+func (s *LedgerService) rarePayments(userID uint64) []dto.RarePayment {
+	var ops []model.Operation
+	if err := s.db.Where("user_id = ?", userID).Find(&ops).Error; err != nil || len(ops) == 0 {
+		return []dto.RarePayment{}
+	}
+	return rarePayments(ops)
+}
+
+func (s *LedgerService) balanceHistory(userID uint64) []dto.BalancePoint {
+	var ops []model.Operation
+	if err := s.db.Where("user_id = ?", userID).Order("date ASC, id ASC").Find(&ops).Error; err != nil || len(ops) == 0 {
+		return []dto.BalancePoint{}
+	}
+	var balance int64
+	byDate := make([]dto.BalancePoint, 0)
+	var current string
+	for _, op := range ops {
+		balance += op.Amount
+		day := op.Date.Format("2006-01-02")
+		if day != current {
+			byDate = append(byDate, dto.BalancePoint{Date: day, Balance: balance})
+			current = day
+			continue
+		}
+		byDate[len(byDate)-1].Balance = balance
+	}
+	if len(byDate) > 90 {
+		byDate = byDate[len(byDate)-90:]
+	}
+	return byDate
+}
+
+func (s *LedgerService) recentOperations(userID uint64, limit int) []dto.OperationDTO {
+	var ops []model.Operation
+	if err := s.db.Where("user_id = ?", userID).Order("date DESC, id DESC").Limit(limit).Find(&ops).Error; err != nil {
+		return []dto.OperationDTO{}
+	}
+	out := make([]dto.OperationDTO, len(ops))
+	for i, op := range ops {
+		out[i] = dto.OperationDTO{
+			Date:        op.Date.Format("2006-01-02"),
+			Amount:      op.Amount,
+			Category:    op.Category,
+			Description: op.Description,
+			IsIncome:    op.Amount >= 0,
+		}
+	}
+	return out
 }

@@ -36,10 +36,35 @@ type AlertDTO struct {
 	Reason    string  `json:"reason"`
 }
 
+// RarePayment is derived from stored operations. It is not a forecast day and
+// is not written to the forecast tables.
+type RarePayment struct {
+	Amount           int64 `json:"amount"`
+	IsIncome         bool  `json:"is_income"`
+	Seen             int   `json:"seen"`
+	RoughlyEveryDays int   `json:"roughly_every_days"`
+}
+
+type OperationDTO struct {
+	Date        string `json:"date"`
+	Amount      int64  `json:"amount"`
+	Category    string `json:"category"`
+	Description string `json:"description"`
+	IsIncome    bool   `json:"is_income"`
+}
+
+type BalancePoint struct {
+	Date    string `json:"date"`
+	Balance int64  `json:"balance"`
+}
+
 type ForecastPayload struct {
-	Days   []ForecastDayDTO `json:"days"`
-	Alerts []AlertDTO       `json:"alerts"`
-	Rough  bool             `json:"rough"`
+	Days       []ForecastDayDTO `json:"days"`
+	Alerts     []AlertDTO       `json:"alerts"`
+	Rough      bool             `json:"rough"`
+	Operations   []OperationDTO   `json:"operations,omitempty"`
+	History      []BalancePoint   `json:"history,omitempty"`
+	RarePayments []RarePayment    `json:"rare_payments,omitempty"`
 }
 
 type ErrorResponse struct {

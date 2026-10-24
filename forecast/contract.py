@@ -39,7 +39,17 @@ class Alert(BaseModel):
     reason: str = Field(min_length=1)
 
 
+class RarePayment(BaseModel):
+    """A large transfer that repeats, but not often enough to be a daily flow."""
+
+    amount: int = Field(gt=0)
+    is_income: bool
+    seen: int = Field(ge=2)
+    roughly_every_days: int = Field(ge=1)
+
+
 class ForecastResponse(BaseModel):
     days: list[ForecastDay]
     alerts: list[Alert]
     rough: bool = False
+    rare_payments: list[RarePayment] = Field(default_factory=list)
