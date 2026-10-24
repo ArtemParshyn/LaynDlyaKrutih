@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"ledger/dto"
 	"ledger/model"
+	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -42,11 +45,74 @@ func (s *LedgerService) ProcessAndSaveStatement(userID uint64, filename string, 
 	// Identify recurring chains and flag Recurring=true in-place
 	DetectAndProjectRecurring(ops, asOf)
 
-	// Execute within database transaction
+	return s.replaceStatement(userID, filename, ops, true)
+}
+
+// AppendStatement adds another CSV to the statement already open.
+// Rows that repeat the same day, amount and description are skipped, so
+// uploading the same file twice does not double the balance.
+func (s *LedgerService) AppendStatement(userID uint64, filename string, csvBytes []byte) error {
+	incoming, err := ParseCSV(csvBytes, userID)
+	if err != nil {
+		return fmt.Errorf("CSV parse error: %w", err)
+	}
+	if len(incoming) == 0 {
+		return errors.New("no valid transaction rows in statement")
+	}
+
+	var stored []model.Operation
+	if err := s.db.Where("user_id = ?", userID).Find(&stored).Error; err != nil {
+		return err
+	}
+	if len(stored) == 0 {
+		return s.ProcessAndSaveStatement(userID, filename, csvBytes)
+	}
+
+	seen := make(map[string]int, len(stored))
+	for _, op := range stored {
+		seen[operationKey(op)]++
+	}
+	fresh := make([]model.Operation, 0, len(incoming))
+	for _, op := range incoming {
+		key := operationKey(op)
+		if seen[key] > 0 {
+			seen[key]--
+			continue
+		}
+		fresh = append(fresh, op)
+	}
+
+	combined := append(stored, fresh...)
+	var asOf time.Time
+	for _, op := range combined {
+		op.Recurring = false
+		if op.Date.After(asOf) {
+			asOf = op.Date
+		}
+	}
+	for i := range combined {
+		combined[i].Recurring = false
+	}
+	DetectAndProjectRecurring(combined, asOf)
+	return s.replaceStatement(userID, filename, combined, false)
+}
+
+func operationKey(op model.Operation) string {
+	return op.Date.Format("2006-01-02") + "|" + strconv.FormatInt(op.Amount, 10) + "|" + strings.TrimSpace(op.Description)
+}
+
+func (s *LedgerService) replaceStatement(userID uint64, filename string, ops []model.Operation, resetManual bool) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
 		// Remove previous operations and current forecast for this user
 		if err := tx.Where("user_id = ?", userID).Delete(&model.Operation{}).Error; err != nil {
 			return err
+		}
+		// A replacement file drops hand-entered payments. Adding a second CSV
+		// keeps them: they belong to the dataset that is still open.
+		if resetManual {
+			if err := tx.Where("user_id = ?", userID).Delete(&model.ManualOperation{}).Error; err != nil {
+				return err
+			}
 		}
 		if err := tx.Where("user_id = ?", userID).Delete(&model.ForecastDay{}).Error; err != nil {
 			return err
@@ -103,12 +169,86 @@ func (s *LedgerService) GetData(userID uint64) (*dto.DataResponse, error) {
 	recurringPayments := DetectAndProjectRecurring(ops, asOf)
 	history := BuildContinuousHistory(ops, minDate, asOf)
 
+	// A hand-entered past payment moves the balance the forecast starts from.
+	// It stays out of history: that series is the ordinary daily flow.
+	manuals, err := s.manualOperations(userID)
+	if err != nil {
+		return nil, err
+	}
+	for _, op := range manuals {
+		if op.Date.After(asOf) {
+			continue
+		}
+		openingBalance += op.Amount
+	}
+
 	return &dto.DataResponse{
 		AsOf:              asOf.Format("2006-01-02"),
 		OpeningBalance:    openingBalance,
 		History:           history,
 		RecurringPayments: recurringPayments,
 	}, nil
+}
+
+// AddManualOperation stores a payment the bank statement does not contain.
+// The date must not be after the statement end: later dates are plans, and a
+// plan must not change the actual balance.
+func (s *LedgerService) AddManualOperation(userID uint64, req dto.ManualOperationRequest) error {
+	asOf, err := s.statementEnd(userID)
+	if err != nil {
+		return err
+	}
+	parsed, err := time.Parse("2006-01-02", strings.TrimSpace(req.Date))
+	if err != nil {
+		parsed, err = parseDate(req.Date)
+		if err != nil {
+			return fmt.Errorf("invalid date: %w", err)
+		}
+	}
+	if parsed.After(asOf) {
+		return errors.New("manual operation date is after the statement")
+	}
+	if req.Amount <= 0 {
+		return errors.New("amount must be positive")
+	}
+
+	amount := req.Amount
+	if !req.IsIncome {
+		amount = -amount
+	}
+	description := strings.TrimSpace(req.Description)
+	category := strings.TrimSpace(req.Category)
+	if category == "" || strings.EqualFold(category, "прочее") {
+		category = ClassifyCategory(description, req.IsIncome)
+	}
+
+	return s.db.Create(&model.ManualOperation{
+		UserID:      userID,
+		Date:        parsed,
+		Amount:      amount,
+		Category:    category,
+		Description: description,
+	}).Error
+}
+
+func (s *LedgerService) statementEnd(userID uint64) (time.Time, error) {
+	var op model.Operation
+	err := s.db.Where("user_id = ?", userID).Order("date DESC").First(&op).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return time.Time{}, ErrNoData
+	}
+	if err != nil {
+		return time.Time{}, err
+	}
+	return op.Date, nil
+}
+
+func (s *LedgerService) manualOperations(userID uint64) ([]model.ManualOperation, error) {
+	var ops []model.ManualOperation
+	if err := s.db.Where("user_id = ?", userID).Order("date ASC, id ASC").Find(&ops).Error; err != nil {
+		return nil, err
+	}
+	return ops, nil
 }
 
 // ArchiveForecast copies current forecast days to forecast_history and clears current tables
@@ -227,9 +367,11 @@ func (s *LedgerService) GetForecast(userID uint64) (*dto.ForecastPayload, error)
 
 	if len(days) == 0 {
 		return &dto.ForecastPayload{
-			Days:   []dto.ForecastDayDTO{},
-			Alerts: []dto.AlertDTO{},
-			Rough:  false,
+			Days:       []dto.ForecastDayDTO{},
+			Alerts:     []dto.AlertDTO{},
+			Rough:      false,
+			Operations: s.recentOperations(userID, 10),
+			History:    s.balanceHistory(userID),
 		}, nil
 	}
 
@@ -282,12 +424,35 @@ func (s *LedgerService) balanceHistory(userID uint64) []dto.BalancePoint {
 	if err := s.db.Where("user_id = ?", userID).Order("date ASC, id ASC").Find(&ops).Error; err != nil || len(ops) == 0 {
 		return []dto.BalancePoint{}
 	}
+	manuals, _ := s.manualOperations(userID)
+	type movement struct {
+		date   time.Time
+		amount int64
+	}
+	rows := make([]movement, 0, len(ops)+len(manuals))
+	asOf := ops[len(ops)-1].Date
+	for _, op := range ops {
+		rows = append(rows, movement{date: op.Date, amount: op.Amount})
+		if op.Date.After(asOf) {
+			asOf = op.Date
+		}
+	}
+	for _, op := range manuals {
+		if op.Date.After(asOf) {
+			continue
+		}
+		rows = append(rows, movement{date: op.Date, amount: op.Amount})
+	}
+	sort.SliceStable(rows, func(i, j int) bool {
+		return rows[i].date.Before(rows[j].date)
+	})
+
 	var balance int64
 	byDate := make([]dto.BalancePoint, 0)
 	var current string
-	for _, op := range ops {
-		balance += op.Amount
-		day := op.Date.Format("2006-01-02")
+	for _, op := range rows {
+		balance += op.amount
+		day := op.date.Format("2006-01-02")
 		if day != current {
 			byDate = append(byDate, dto.BalancePoint{Date: day, Balance: balance})
 			current = day
@@ -301,20 +466,85 @@ func (s *LedgerService) balanceHistory(userID uint64) []dto.BalancePoint {
 	return byDate
 }
 
-func (s *LedgerService) recentOperations(userID uint64, limit int) []dto.OperationDTO {
+// Operations returns every stored movement, oldest first. The gateway turns
+// this into the CSV Prophet trains on. Manual rows are included because they
+// already moved the actual balance.
+func (s *LedgerService) Operations(userID uint64) ([]dto.OperationDTO, error) {
 	var ops []model.Operation
-	if err := s.db.Where("user_id = ?", userID).Order("date DESC, id DESC").Limit(limit).Find(&ops).Error; err != nil {
-		return []dto.OperationDTO{}
+	if err := s.db.Where("user_id = ?", userID).Order("date ASC, id ASC").Find(&ops).Error; err != nil {
+		return nil, err
 	}
-	out := make([]dto.OperationDTO, len(ops))
-	for i, op := range ops {
-		out[i] = dto.OperationDTO{
+	if len(ops) == 0 {
+		return nil, ErrNoData
+	}
+	manuals, err := s.manualOperations(userID)
+	if err != nil {
+		return nil, err
+	}
+	asOf := ops[len(ops)-1].Date
+	out := make([]dto.OperationDTO, 0, len(ops)+len(manuals))
+	for _, op := range ops {
+		out = append(out, dto.OperationDTO{
 			Date:        op.Date.Format("2006-01-02"),
 			Amount:      op.Amount,
 			Category:    op.Category,
 			Description: op.Description,
 			IsIncome:    op.Amount >= 0,
+		})
+	}
+	for _, op := range manuals {
+		if op.Date.After(asOf) {
+			continue
 		}
+		out = append(out, dto.OperationDTO{
+			Date:        op.Date.Format("2006-01-02"),
+			Amount:      op.Amount,
+			Category:    op.Category,
+			Description: op.Description,
+			IsIncome:    op.Amount >= 0,
+			Manual:      true,
+		})
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		return out[i].Date < out[j].Date
+	})
+	return out, nil
+}
+
+func (s *LedgerService) recentOperations(userID uint64, limit int) []dto.OperationDTO {
+	var ops []model.Operation
+	if err := s.db.Where("user_id = ?", userID).Order("date DESC, id DESC").Limit(limit).Find(&ops).Error; err != nil {
+		return []dto.OperationDTO{}
+	}
+	manuals, _ := s.manualOperations(userID)
+	out := make([]dto.OperationDTO, 0, len(ops)+len(manuals))
+	for _, op := range ops {
+		out = append(out, dto.OperationDTO{
+			Date:        op.Date.Format("2006-01-02"),
+			Amount:      op.Amount,
+			Category:    op.Category,
+			Description: op.Description,
+			IsIncome:    op.Amount >= 0,
+		})
+	}
+	for _, op := range manuals {
+		out = append(out, dto.OperationDTO{
+			Date:        op.Date.Format("2006-01-02"),
+			Amount:      op.Amount,
+			Category:    op.Category,
+			Description: op.Description,
+			IsIncome:    op.Amount >= 0,
+			Manual:      true,
+		})
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		if out[i].Date == out[j].Date {
+			return out[i].Manual && !out[j].Manual
+		}
+		return out[i].Date > out[j].Date
+	})
+	if len(out) > limit {
+		out = out[:limit]
 	}
 	return out
 }

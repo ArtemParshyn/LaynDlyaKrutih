@@ -1,85 +1,85 @@
 /* ============ @property — регистрируем переменные для анимации ============ */
-@property --bg { syntax: '<color>'; inherits: true; initial-value: #06120e; }
-@property --text { syntax: '<color>'; inherits: true; initial-value: #f0fdf4; }
-@property --text-muted { syntax: '<color>'; inherits: true; initial-value: rgba(240, 253, 244, 0.65); }
-@property --text-faint { syntax: '<color>'; inherits: true; initial-value: rgba(240, 253, 244, 0.38); }
-@property --accent { syntax: '<color>'; inherits: true; initial-value: #a3e635; }
-@property --accent-2 { syntax: '<color>'; inherits: true; initial-value: #34d399; }
-@property --surface { syntax: '<color>'; inherits: true; initial-value: rgba(16, 32, 25, 0.72); }
-@property --surface-strong { syntax: '<color>'; inherits: true; initial-value: rgba(20, 40, 31, 0.97); }
-@property --surface-input { syntax: '<color>'; inherits: true; initial-value: rgba(6, 18, 14, 0.65); }
-@property --surface-header { syntax: '<color>'; inherits: true; initial-value: rgba(6, 18, 14, 0.78); }
-@property --surface-button { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.15); }
-@property --surface-button-hover { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.3); }
-@property --border { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.26); }
-@property --border-strong { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.52); }
+@property --bg { syntax: '<color>'; inherits: true; initial-value: #06281a; }
+@property --text { syntax: '<color>'; inherits: true; initial-value: #f4faf6; }
+@property --text-muted { syntax: '<color>'; inherits: true; initial-value: rgba(244, 250, 246, 0.68); }
+@property --text-faint { syntax: '<color>'; inherits: true; initial-value: rgba(244, 250, 246, 0.4); }
+@property --accent { syntax: '<color>'; inherits: true; initial-value: #00874A; }
+@property --accent-2 { syntax: '<color>'; inherits: true; initial-value: #00a86b; }
+@property --surface { syntax: '<color>'; inherits: true; initial-value: rgba(0, 56, 31, 0.55); }
+@property --surface-strong { syntax: '<color>'; inherits: true; initial-value: rgba(0, 56, 31, 0.96); }
+@property --surface-input { syntax: '<color>'; inherits: true; initial-value: rgba(6, 40, 26, 0.72); }
+@property --surface-header { syntax: '<color>'; inherits: true; initial-value: rgba(0, 56, 31, 0.88); }
+@property --surface-button { syntax: '<color>'; inherits: true; initial-value: rgba(0, 135, 74, 0.18); }
+@property --surface-button-hover { syntax: '<color>'; inherits: true; initial-value: rgba(0, 135, 74, 0.34); }
+@property --border { syntax: '<color>'; inherits: true; initial-value: rgba(0, 135, 74, 0.38); }
+@property --border-strong { syntax: '<color>'; inherits: true; initial-value: rgba(0, 135, 74, 0.68); }
 @property --border-soft { syntax: '<color>'; inherits: true; initial-value: rgba(255, 255, 255, 0.09); }
-@property --shadow-hover { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.4); }
-@property --shadow-accent { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.22); }
-@property --shadow-accent-strong { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.42); }
+@property --shadow-hover { syntax: '<color>'; inherits: true; initial-value: rgba(0, 135, 74, 0.42); }
+@property --shadow-accent { syntax: '<color>'; inherits: true; initial-value: rgba(0, 135, 74, 0.24); }
+@property --shadow-accent-strong { syntax: '<color>'; inherits: true; initial-value: rgba(0, 135, 74, 0.46); }
 @property --overlay { syntax: '<color>'; inherits: true; initial-value: rgba(0, 0, 0, 0.6); }
 @property --error { syntax: '<color>'; inherits: true; initial-value: #f43f5e; }
 @property --skeleton-1 { syntax: '<color>'; inherits: true; initial-value: rgba(255, 255, 255, 0.05); }
 @property --skeleton-2 { syntax: '<color>'; inherits: true; initial-value: rgba(255, 255, 255, 0.12); }
-@property --scrollbar-thumb { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.28); }
-@property --scrollbar-thumb-hover { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.55); }
-@property --surface-input-hover { syntax: '<color>'; inherits: true; initial-value: rgba(16, 32, 25, 0.82); }
-@property --surface-input-focus { syntax: '<color>'; inherits: true; initial-value: rgba(20, 40, 31, 0.95); }
-@property --surface-button-avatar { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.2); }
-@property --surface-button-avatar-hover { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.38); }
+@property --scrollbar-thumb { syntax: '<color>'; inherits: true; initial-value: rgba(0, 135, 74, 0.4); }
+@property --scrollbar-thumb-hover { syntax: '<color>'; inherits: true; initial-value: rgba(0, 135, 74, 0.68); }
+@property --surface-input-hover { syntax: '<color>'; inherits: true; initial-value: rgba(0, 56, 31, 0.82); }
+@property --surface-input-focus { syntax: '<color>'; inherits: true; initial-value: rgba(0, 56, 31, 0.96); }
+@property --surface-button-avatar { syntax: '<color>'; inherits: true; initial-value: rgba(0, 135, 74, 0.24); }
+@property --surface-button-avatar-hover { syntax: '<color>'; inherits: true; initial-value: rgba(0, 135, 74, 0.42); }
 @property --surface-logout { syntax: '<color>'; inherits: true; initial-value: rgba(255, 255, 255, 0.07); }
-@property --border-avatar { syntax: '<color>'; inherits: true; initial-value: rgba(163, 230, 53, 0.32); }
+@property --border-avatar { syntax: '<color>'; inherits: true; initial-value: rgba(0, 135, 74, 0.46); }
 
 /* ============ ЦВЕТОВЫЕ ПЕРЕМЕННЫЕ — ТЁМНАЯ ТЕМА (default) ============ */
 :root {
-  --bg: #06120e;
-  --text: #f0fdf4;
-  --text-muted: rgba(240, 253, 244, 0.65);
-  --text-faint: rgba(240, 253, 244, 0.38);
+  --bg: #06281a;
+  --text: #f4faf6;
+  --text-muted: rgba(244, 250, 246, 0.68);
+  --text-faint: rgba(244, 250, 246, 0.4);
 
-  --accent: #a3e635;
-  --accent-2: #34d399;
+  --accent: #00874A;
+  --accent-2: #00a86b;
 
-  --surface: rgba(16, 32, 25, 0.72);
-  --surface-strong: rgba(20, 40, 31, 0.97);
-  --surface-input: rgba(6, 18, 14, 0.65);
-  --surface-input-hover: rgba(16, 32, 25, 0.82);
-  --surface-input-focus: rgba(20, 40, 31, 0.95);
-  --surface-header: rgba(6, 18, 14, 0.78);
-  --surface-button: rgba(163, 230, 53, 0.15);
-  --surface-button-hover: rgba(163, 230, 53, 0.3);
-  --surface-button-avatar: rgba(163, 230, 53, 0.2);
-  --surface-button-avatar-hover: rgba(163, 230, 53, 0.38);
+  --surface: rgba(0, 56, 31, 0.55);
+  --surface-strong: rgba(0, 56, 31, 0.96);
+  --surface-input: rgba(6, 40, 26, 0.72);
+  --surface-input-hover: rgba(0, 56, 31, 0.82);
+  --surface-input-focus: rgba(0, 56, 31, 0.96);
+  --surface-header: rgba(0, 56, 31, 0.88);
+  --surface-button: rgba(0, 135, 74, 0.18);
+  --surface-button-hover: rgba(0, 135, 74, 0.34);
+  --surface-button-avatar: rgba(0, 135, 74, 0.24);
+  --surface-button-avatar-hover: rgba(0, 135, 74, 0.42);
   --surface-logout: rgba(255, 255, 255, 0.07);
 
-  --border: rgba(163, 230, 53, 0.26);
-  --border-strong: rgba(163, 230, 53, 0.52);
+  --border: rgba(0, 135, 74, 0.38);
+  --border-strong: rgba(0, 135, 74, 0.68);
   --border-soft: rgba(255, 255, 255, 0.09);
-  --border-avatar: rgba(163, 230, 53, 0.32);
+  --border-avatar: rgba(0, 135, 74, 0.46);
 
   --overlay: rgba(0, 0, 0, 0.6);
   --error: #f43f5e;
 
-  --shadow-hover: rgba(163, 230, 53, 0.4);
-  --shadow-accent: rgba(163, 230, 53, 0.22);
-  --shadow-accent-strong: rgba(163, 230, 53, 0.42);
+  --shadow-hover: rgba(0, 135, 74, 0.42);
+  --shadow-accent: rgba(0, 135, 74, 0.24);
+  --shadow-accent-strong: rgba(0, 135, 74, 0.46);
 
   --skeleton-1: rgba(255, 255, 255, 0.05);
   --skeleton-2: rgba(255, 255, 255, 0.12);
 
-  --scrollbar-thumb: rgba(163, 230, 53, 0.28);
-  --scrollbar-thumb-hover: rgba(163, 230, 53, 0.55);
+  --scrollbar-thumb: rgba(0, 135, 74, 0.4);
+  --scrollbar-thumb-hover: rgba(0, 135, 74, 0.68);
 }
 
 /* ============ СВЕТЛАЯ ТЕМА ============ */
 [data-theme="light"] {
-  --bg: #f8fafc;
-  --text: #0f172a;
-  --text-muted: rgba(15, 23, 42, 0.66);
-  --text-faint: rgba(15, 23, 42, 0.38);
+  --bg: #f3faf6;
+  --text: #06281a;
+  --text-muted: rgba(6, 40, 26, 0.66);
+  --text-faint: rgba(6, 40, 26, 0.4);
 
-  --accent: #65a30d;
-  --accent-2: #059669;
+  --accent: #00874A;
+  --accent-2: #005A32;
 
   --surface: rgba(255, 255, 255, 0.88);
   --surface-strong: rgba(255, 255, 255, 0.99);
@@ -87,29 +87,29 @@
   --surface-input-hover: rgba(237, 238, 248, 1);
   --surface-input-focus: #ffffff;
   --surface-header: rgba(248, 250, 252, 0.82);
-  --surface-button: rgba(101, 163, 13, 0.08);
-  --surface-button-hover: rgba(101, 163, 13, 0.17);
-  --surface-button-avatar: rgba(101, 163, 13, 0.1);
-  --surface-button-avatar-hover: rgba(101, 163, 13, 0.2);
+  --surface-button: rgba(0, 135, 74, 0.1);
+  --surface-button-hover: rgba(0, 135, 74, 0.18);
+  --surface-button-avatar: rgba(0, 135, 74, 0.12);
+  --surface-button-avatar-hover: rgba(0, 135, 74, 0.22);
   --surface-logout: rgba(0, 0, 0, 0.05);
 
-  --border: rgba(101, 163, 13, 0.18);
-  --border-strong: rgba(101, 163, 13, 0.42);
+  --border: rgba(0, 135, 74, 0.24);
+  --border-strong: rgba(0, 90, 50, 0.5);
   --border-soft: rgba(0, 0, 0, 0.07);
-  --border-avatar: rgba(101, 163, 13, 0.22);
+  --border-avatar: rgba(0, 135, 74, 0.32);
 
   --overlay: rgba(15, 23, 42, 0.38);
   --error: #e11d48;
 
-  --shadow-hover: rgba(101, 163, 13, 0.22);
-  --shadow-accent: rgba(101, 163, 13, 0.14);
-  --shadow-accent-strong: rgba(101, 163, 13, 0.28);
+  --shadow-hover: rgba(0, 135, 74, 0.22);
+  --shadow-accent: rgba(0, 135, 74, 0.14);
+  --shadow-accent-strong: rgba(0, 135, 74, 0.28);
 
   --skeleton-1: rgba(0, 0, 0, 0.05);
   --skeleton-2: rgba(0, 0, 0, 0.1);
 
-  --scrollbar-thumb: rgba(101, 163, 13, 0.22);
-  --scrollbar-thumb-hover: rgba(101, 163, 13, 0.48);
+  --scrollbar-thumb: rgba(0, 135, 74, 0.28);
+  --scrollbar-thumb-hover: rgba(0, 135, 74, 0.5);
 }
 
 /* ============ БАЗОВЫЕ СТИЛИ ============ */
@@ -773,6 +773,62 @@ main {
   color: var(--text);
   border-color: var(--accent);
 }
+.ChartChange {
+  margin: 8px 0 0;
+  font-size: 15px;
+  color: var(--text);
+}
+.ChartChange strong { font-size: 20px; }
+.ChartChange--down { color: var(--error); }
+.FinanceChart .recharts-wrapper { cursor: crosshair; }
+.OperationForm {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.OperationForm label {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.OperationForm input[type="date"],
+.OperationForm input[type="number"],
+.OperationForm input[type="text"] {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: transparent;
+  color: var(--text);
+  font-size: 15px;
+}
+.OperationForm-choice { display: flex; gap: 8px; }
+.OperationForm-choice button,
+.ChartRange-button {
+  border: 1px solid var(--border);
+}
+.OperationForm-choice button {
+  flex: 1;
+  border-radius: 8px;
+  padding: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.OperationForm-choice button.is-active {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.OperationForm-check {
+  display: flex !important;
+  grid-template-columns: none;
+  align-items: center;
+  gap: 8px;
+}
 .UploadActions {
   display: flex;
   gap: clamp(10px, 2vw, 16px);
@@ -1094,11 +1150,17 @@ main {
   align-items: start;
 }
 
+.GridAdd {
+  grid-column: 1 / 2;
+  grid-row: 2 / 3;
+  width: 100%;
+}
 .GridCard {
   grid-column: 2 / 3;
   grid-row: 2 / 3;
   display: flex;
   justify-content: flex-end;
+  align-items: flex-start;
 }
 
 .GridChart {

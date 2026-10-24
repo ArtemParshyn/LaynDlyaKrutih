@@ -75,12 +75,39 @@ func (h *ForecastHandler) UploadStatement(c *gin.Context) {
 		fileBytes = body
 	}
 
-	forecast, err := h.orchestrator.UploadStatementAndRecalculate(c.Request.Context(), userID, filename, fileBytes)
+	upload := h.orchestrator.UploadStatementAndRecalculate
+	if c.Query("mode") == "append" {
+		upload = h.orchestrator.AppendStatementAndRecalculate
+	}
+	forecast, err := upload(c.Request.Context(), userID, filename, fileBytes)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, dto.ErrorResponse{Error: err.Error()})
 		return
 	}
 
+	c.JSON(http.StatusOK, forecast)
+}
+
+// Process godoc
+// @Summary      Прогноз Prophet
+// @Description  Забирает 30 дней у модели, которую обучение поставило в очередь при загрузке CSV. Если модель ещё учится, дни не возвращаются.
+// @Tags         Forecast
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200 {object} dto.ForecastResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      502 {object} dto.ErrorResponse
+// @Router       /api/forecast/process [post]
+func (h *ForecastHandler) Process(c *gin.Context) {
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
+	forecast, err := h.orchestrator.Process(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, forecast)
 }
 
@@ -140,6 +167,39 @@ func (h *ForecastHandler) CreateEvent(c *gin.Context) {
 		return
 	}
 
+	c.JSON(http.StatusOK, forecast)
+}
+
+// AddOperation godoc
+// @Summary      Ручная операция
+// @Description  Прошлая дата исправляет фактический остаток и не входит в обычный дневной поток. Будущая дата сохраняется как план. Прогноз пересчитывается целиком.
+// @Tags         Forecast
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        request body dto.ManualOperation true "Операция"
+// @Success      200 {object} dto.ForecastResponse
+// @Failure      400 {object} dto.ErrorResponse
+// @Failure      401 {object} dto.ErrorResponse
+// @Failure      502 {object} dto.ErrorResponse
+// @Router       /api/operations [post]
+func (h *ForecastHandler) AddOperation(c *gin.Context) {
+	userID, ok := getUserID(c)
+	if !ok {
+		return
+	}
+
+	var req dto.ManualOperation
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	forecast, err := h.orchestrator.AddOperation(c.Request.Context(), userID, req)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, forecast)
 }
 

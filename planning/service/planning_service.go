@@ -148,6 +148,15 @@ func (s *PlanningService) GetEventsList(userID uint64) ([]dto.EventResponse, err
 	return res, nil
 }
 
+// ClearUser removes every plan of this user. A new statement starts clean:
+// a payment entered for the previous file must not follow the next one.
+func (s *PlanningService) ClearUser(userID uint64) error {
+	if s.db == nil {
+		return errors.New("database not available")
+	}
+	return s.db.Where("user_id = ?", userID).Delete(&model.PlanEvent{}).Error
+}
+
 // DeleteEvent deletes an event owned by user
 func (s *PlanningService) DeleteEvent(userID, eventID uint64) error {
 	if s.db == nil {

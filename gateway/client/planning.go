@@ -128,6 +128,27 @@ func (c *PlanningClient) GetEventsList(ctx context.Context, userID uint) ([]dto.
 	return list, nil
 }
 
+// ClearEvents removes every plan of the user. Called when a new statement arrives.
+func (c *PlanningClient) ClearEvents(ctx context.Context, userID uint) error {
+	url := fmt.Sprintf("%s/events", c.baseURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create clear events request: %w", err)
+	}
+	req.Header.Set("X-User-ID", strconv.FormatUint(uint64(userID), 10))
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("planning clear events failed: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("planning clear events error %d: %s", resp.StatusCode, string(respBody))
+	}
+	return nil
+}
+
 // DeleteEvent deletes a planned event in Planning service
 func (c *PlanningClient) DeleteEvent(ctx context.Context, userID uint, eventID uint64) error {
 	url := fmt.Sprintf("%s/events/%d", c.baseURL, eventID)

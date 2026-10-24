@@ -31,6 +31,7 @@ func main() {
 	{
 		api.POST("/events", handler.CreateEvent)
 		api.GET("/events", handler.GetEvents)
+		api.DELETE("/events", handler.ClearEvents)
 		api.DELETE("/events/:id", handler.DeleteEvent)
 	}
 

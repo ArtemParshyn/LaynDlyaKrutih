@@ -51,11 +51,32 @@ type Operation struct {
 	Category    string `json:"category"`
 	Description string `json:"description"`
 	IsIncome    bool   `json:"is_income"`
+	Manual      bool   `json:"manual,omitempty"`
+}
+
+// ManualOperation is entered by the user, not parsed from a statement.
+// Amount is a positive number of kopecks. The gateway decides where it goes:
+// on or before the statement end it corrects the actual balance, after that
+// it is a plan and only moves the forecast.
+type ManualOperation struct {
+	Date        string `json:"date" binding:"required"`
+	Amount      int64  `json:"amount" binding:"required,gt=0"`
+	IsIncome    bool   `json:"is_income"`
+	Category    string `json:"category"`
+	Description string `json:"description"`
+	Recurring   bool   `json:"recurring"`
 }
 
 type BalancePoint struct {
 	Date    string `json:"date"`
 	Balance int64  `json:"balance"`
+}
+
+// Training is the Prophet job started by a CSV upload. The forecast itself
+// is requested later, when the user asks to process the statement.
+type Training struct {
+	Status string `json:"status"`
+	Error  string `json:"error,omitempty"`
 }
 
 type ForecastResponse struct {
@@ -66,6 +87,8 @@ type ForecastResponse struct {
 	Operations        []Operation        `json:"operations"`
 	History           []BalancePoint     `json:"history"`
 	RarePayments      []RarePayment      `json:"rare_payments"`
+	Training          *Training          `json:"training,omitempty"`
+	Summary           string             `json:"summary,omitempty"`
 }
 
 // LedgerData is received from the Ledger (выписка) service

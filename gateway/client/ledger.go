@@ -30,6 +30,15 @@ func NewLedgerClient(baseURL string) *LedgerClient {
 
 // UploadStatement forwards the uploaded statement CSV to the Ledger service
 func (c *LedgerClient) UploadStatement(ctx context.Context, userID uint, filename string, fileData []byte) error {
+	return c.upload(ctx, userID, filename, fileData, false)
+}
+
+// AppendStatement adds a CSV to the statement already stored for this user.
+func (c *LedgerClient) AppendStatement(ctx context.Context, userID uint, filename string, fileData []byte) error {
+	return c.upload(ctx, userID, filename, fileData, true)
+}
+
+func (c *LedgerClient) upload(ctx context.Context, userID uint, filename string, fileData []byte, appendFile bool) error {
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 
@@ -45,6 +54,9 @@ func (c *LedgerClient) UploadStatement(ctx context.Context, userID uint, filenam
 	}
 
 	url := fmt.Sprintf("%s/statements", c.baseURL)
+	if appendFile {
+		url += "?mode=append"
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, &body)
 	if err != nil {
 		return fmt.Errorf("failed to create upload request: %w", err)
@@ -89,6 +101,62 @@ func (c *LedgerClient) ArchiveForecast(ctx context.Context, userID uint) error {
 	}
 
 	return nil
+}
+
+// AddManualOperation stores a past payment that was missing from the statement.
+// It does not replace bank rows and is not part of the daily flow.
+func (c *LedgerClient) AddManualOperation(ctx context.Context, userID uint, op dto.ManualOperation) error {
+	jsonBytes, err := json.Marshal(op)
+	if err != nil {
+		return fmt.Errorf("failed to marshal manual operation: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/operations", c.baseURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonBytes))
+	if err != nil {
+		return fmt.Errorf("failed to create manual operation request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-User-ID", strconv.FormatUint(uint64(userID), 10))
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("ledger manual operation request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("ledger manual operation error %d: %s", resp.StatusCode, string(respBody))
+	}
+	return nil
+}
+
+// Operations returns every stored movement, oldest first.
+func (c *LedgerClient) Operations(ctx context.Context, userID uint) ([]dto.Operation, error) {
+	url := fmt.Sprintf("%s/operations", c.baseURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create operations request: %w", err)
+	}
+	req.Header.Set("X-User-ID", strconv.FormatUint(uint64(userID), 10))
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("ledger operations request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("ledger operations error %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var ops []dto.Operation
+	if err := json.NewDecoder(resp.Body).Decode(&ops); err != nil {
+		return nil, fmt.Errorf("failed to decode operations: %w", err)
+	}
+	return ops, nil
 }
 
 // GetData requests balance, history, and recurring payments from Ledger
