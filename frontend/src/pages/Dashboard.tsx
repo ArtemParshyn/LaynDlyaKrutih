@@ -3,61 +3,69 @@ import { useAuth } from '../context/AuthContext';
 import '../App.css';
 import FinanceChart from '../components/FinanceChart';
 import { toast } from 'sonner';
-import { Transaction } from '../utils/csv';
-import { statementToTransactions, toBackendStatement } from '../utils/statement';
-import { getForecast, uploadStatementText, ForecastResponse, rubles } from '../api/forecast';
-import AnalyzedTable from "../components/AnalyzedTable";
+import { getForecast, uploadStatement, ForecastResponse, ScheduledPayment, rubles } from '../api/forecast';
 import PlasticCard from '../components/BusinessCard/BuisnessCard';
 
 const Dashboard = () => {
     const { user, loading, openModal } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
-    const [uploadTransactions, setUploadTransactions] = useState<Transaction[]>([]);
+
 
     // Храним данные графика и найденные разрывы
+    const storageKey = `forecast:${user?.id || 'guest'}`;
     const [forecast, setForecast] = useState<ForecastResponse | null>(null);
 
-    const showForecast = (next: ForecastResponse, transactions?: Transaction[]) => {
+    const recurringPayments = (data: ForecastResponse | null): ScheduledPayment[] =>
+        data?.recurring_payments || [];
+
+    const recurringByCategory = (payments: ScheduledPayment[]) => {
+        const groups = new Map<string, { category: string; is_income: boolean; count: number; amount: number }>();
+        payments.forEach((payment) => {
+            const category = payment.category || 'Без категории';
+            const key = `${category}:${payment.is_income}`;
+            const group = groups.get(key) || { category, is_income: payment.is_income, count: 0, amount: 0 };
+            group.count += 1;
+            group.amount += payment.amount;
+            groups.set(key, group);
+        });
+        return [...groups.values()];
+    };
+
+    const showForecast = (next: ForecastResponse) => {
         setForecast(next);
-        if (transactions) setUploadTransactions(transactions);
         setIsLoading(false);
     };
 
-    useEffect(() => {
-        if (!user) return;
-        getForecast()
-            .then((saved) => {
-                if (saved.days?.length) setForecast(saved);
-            })
-            .catch(() => {});
-    }, [user]);
-
-    const processData = async (text: string) => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setIsLoading(true);
+        const started = Date.now();
+        const waitForForecast = async () => {
+            while (Date.now() - started < 30000) {
+                await new Promise((resolve) => window.setTimeout(resolve, 2000));
+                try {
+                    const saved = await getForecast();
+                    if (saved.days?.length) return saved;
+                } catch {
+                    // сервер ещё считает
+                }
+            }
+            throw new Error('Прогноз ещё не готов. Обновите страницу чуть позже.');
+        };
         try {
-            const statement = toBackendStatement(text);
-            const transactions = statementToTransactions(statement);
-            if (transactions.length === 0) throw new Error('Файл пуст или неверный формат');
-            showForecast(await uploadStatementText(statement), transactions);
-            toast.success('Выписка отправлена, прогноз получен');
+            const uploaded = uploadStatement(file).catch(() => null);
+            const ready = await Promise.race([
+                uploaded.then((saved) => (saved?.days?.length ? saved : null)),
+                waitForForecast(),
+            ]);
+            if (!ready) throw new Error('Прогноз ещё не готов. Обновите страницу чуть позже.');
+            showForecast(ready);
+            toast.success('Прогноз получен');
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Ошибка загрузки выписки');
             setIsLoading(false);
         }
-    };
-
-    // Обработка загруженного файла
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setIsLoading(true);
-        const reader = new FileReader();
-        reader.onload = (event) => processData(String(event.target?.result || ''));
-        reader.onerror = () => {
-            toast.error('Не удалось прочитать файл');
-            setIsLoading(false);
-        };
-        reader.readAsText(file);
     };
 
     // Загрузка демо-данных из public/data/financial_data.csv
@@ -66,8 +74,8 @@ const Dashboard = () => {
         try {
             const response = await fetch('/data/financial_data.csv');
             if (!response.ok) throw new Error('Демо-файл не найден');
-            const text = await response.text();
-            await processData(text);
+            const file = new File([await response.blob()], 'financial_data.csv', { type: 'text/csv' });
+            showForecast(await uploadStatement(file));
         } catch (err) {
             toast.error('Не удалось загрузить демо-файл. Проверьте папку public/data');
             setIsLoading(false);
@@ -77,7 +85,7 @@ const Dashboard = () => {
     // Сброс к начальному экрану
     const handleReset = () => {
         setForecast(null);
-        setUploadTransactions([]);
+
     };
 
     return (
@@ -148,10 +156,30 @@ const Dashboard = () => {
                         />
                     </div>
 
-                    {/* Таблица (Левая колонка, под приветствием) */}
+                    {/* Регулярные платежи, которые нашёл бэкенд */}
                     <div className="GridTable">
-                        <h3 className="SectionTitle">Детализация операций</h3>
-                        <AnalyzedTable transactions={uploadTransactions} />
+                        <h3 className="SectionTitle">Регулярные платежи</h3>
+                        {recurringPayments(forecast).length ? (
+                            <div className="GapList">
+                                {recurringByCategory(recurringPayments(forecast)).map((group) => (
+                                    <div key={`${group.category}:${group.is_income}`} className="GapCard">
+                                        <div>
+                                            <div className="GapCard-date">{group.category}</div>
+                                            <div className="GapCard-note">
+                                                {group.count} {group.is_income ? 'приходов' : 'расходов'}
+                                            </div>
+                                        </div>
+                                        <div className="GapCard-sum">
+                                            <div className={group.is_income ? 'Amount--plus' : 'Amount--minus'}>
+                                                {group.is_income ? '+' : '−'}{rubles(group.amount).toLocaleString('ru-RU')} ₽
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="GapCard-note">Регулярных платежей в выписке не найдено.</p>
+                        )}
                     </div>
 
                     {/* График (На всю ширину, или по центру) */}

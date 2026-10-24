@@ -17,10 +17,20 @@ export interface ForecastAlert {
   reason: string;
 }
 
+// Совпадает с ledger/dto.ScheduledPayment и gateway/dto.ScheduledPayment.
+// amount — копейки. Категорию и признак дохода считает бэкенд, фронт их не выводит.
+export interface ScheduledPayment {
+  date: string;
+  amount: number;
+  is_income: boolean;
+  category: string;
+}
+
 export interface ForecastResponse {
   days: ForecastDay[];
   alerts: ForecastAlert[];
   rough: boolean;
+  recurring_payments: ScheduledPayment[];
 }
 
 export const uploadStatement = (file: File) => {
