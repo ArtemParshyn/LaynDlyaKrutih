@@ -39,14 +39,17 @@ const Dashboard = () => {
         return [...alerts].sort((left, right) => left.date.localeCompare(right.date))[0];
     };
 
+    const chancePercent = (chance: number) => Math.round(Math.min(1, Math.max(0, chance)) * 100);
+
     const chanceWord = (chance: number) => {
-        if (chance >= 0.7) {
-            return 'почти наверняка';
+        const percent = chancePercent(chance);
+        if (percent >= 70) {
+            return `шанс ${percent}%, почти наверняка`;
         }
-        if (chance >= 0.3) {
-            return 'заметный шанс';
+        if (percent >= 30) {
+            return `шанс ${percent}%`;
         }
-        return 'шанс небольшой';
+        return `шанс небольшой, ${percent}%`;
     };
 
     const showForecast = (next: ForecastResponse) => {
@@ -171,7 +174,11 @@ const Dashboard = () => {
                         <PlasticCard
                             companyName={user?.company_name || user?.name || 'Моя компания'}
                             ostatok={rubles(forecast.days[forecast.days.length - 1]?.expected_balance || 0)}
-                            cardStatus={forecast.alerts?.length ? 'Риск разрыва' : 'Стабилен'}
+                            cardStatus={
+                                nearestGap(forecast.alerts)
+                                    ? `Разрыв ${chancePercent(nearestGap(forecast.alerts)?.chance || 0)}%`
+                                    : 'Стабилен'
+                            }
                         />
                     </div>
 
@@ -261,32 +268,6 @@ const Dashboard = () => {
                         )}
                     </div>
 
-                    {showBounds && (
-                        <div className="GridForecast">
-                            <h3 className="SectionTitle">Границы прогноза</h3>
-                            <div className="GapList">
-                                {forecast.days.map((day) => (
-                                    <div key={day.date} className="GapCard">
-                                        <div>
-                                            <div className="GapCard-date">{day.date}</div>
-                                            <div className="GapCard-note">
-                                                ожидание {rubles(day.expected_balance).toLocaleString('ru-RU')} ₽
-                                            </div>
-                                        </div>
-                                        <div className="GapCard-sum">
-                                            <div className="Amount--plus">
-                                                верх {rubles(day.balance_high).toLocaleString('ru-RU')} ₽
-                                            </div>
-                                            <div className="Amount--minus">
-                                                низ {rubles(day.balance_low).toLocaleString('ru-RU')} ₽
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
                     <div className="GridOps">
                         <h3 className="SectionTitle">Последние операции</h3>
                         {(forecast.operations || []).length ? (
@@ -322,7 +303,7 @@ const Dashboard = () => {
                                                 {alert.date}
                                             </div>
                                             <div className="GapCard-note">
-                                                {alert.reason}
+                                                {alert.reason}, шанс {chancePercent(alert.chance)}%
                                             </div>
                                         </div>
                                         <div className="GapCard-sum">

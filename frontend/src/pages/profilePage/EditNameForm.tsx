@@ -47,8 +47,8 @@ const EditNameForm = ({ isOpen, onClose }: ChangeNameFormProps) => {
       className="RegistrationModal"
       overlayClassName="RegistrationModal-overlay"
     >
-      <button className="Button" onClick={onClose}>
-        ❌
+      <button type="button" className="ModalClose" onClick={onClose} aria-label="Закрыть">
+        Закрыть
       </button>
 
       <form onSubmit={handleSubmit(onSubmit)}>

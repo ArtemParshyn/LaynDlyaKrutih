@@ -34,32 +34,6 @@ const ProfileButtonHeader = () => {
   );
 };
 
-const SettingsButtonHeader = () => {
-  const { loading, isAuthenticated, openModal } = useAuth();
-  if (loading) return null;
-
-  if (!isAuthenticated) {
-    return (
-      <button
-        className="Button"
-        onClick={() =>
-          toast.error('Пожалуйста, войдите в свой аккаунт или зарегистрируйтесь', {
-            action: { label: 'Войти', onClick: () => openModal() },
-          })
-        }
-      >
-        Настройки профиля
-      </button>
-    );
-  }
-
-  return (
-    <Link to="/settings" className="Button">
-      Настройки профиля
-    </Link>
-  );
-};
-
 const BurgerMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
@@ -75,7 +49,6 @@ const BurgerMenu = () => {
       {isOpen && (
         <div className="BurgerMenu-dropdown">
           <ProfileButtonHeader />
-          <SettingsButtonHeader />
         </div>
       )}
     </div>
@@ -90,9 +63,6 @@ const Header = () => {
       </Link>
       <div className="Header-desktop-only">
         <ProfileButtonHeader />
-      </div>
-      <div className="Header-desktop-only">
-        <SettingsButtonHeader />
       </div>
 
       <div className="Header-right-group">

@@ -65,8 +65,8 @@ const ChangePasswordForm = ({ isOpen, onClose }: ChangePasswordFormProps) => {
       className="RegistrationModal"
       overlayClassName="RegistrationModal-overlay"
     >
-      <button className="Button" onClick={onClose}>
-        ❌
+      <button type="button" className="ModalClose" onClick={onClose} aria-label="Закрыть">
+        Закрыть
       </button>
       <h3>Смена пароля</h3>
       <input

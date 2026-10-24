@@ -7,15 +7,22 @@ const SettingsPage = () => {
 
   return (
     <div className="SettingsPage">
-      <h1 className="PageTitle">Настройки и система</h1>
+      <h1 className="PageTitle">Настройки</h1>
 
       <div className="SettingsCard">
-        <h3>Текущий аккаунт</h3>
-        <p><strong>Компания:</strong> {user?.company_name || user?.name || '—'}</p>
-        <p><strong>Email:</strong> {user?.email || '—'}</p>
-        <p><strong>ID в системе:</strong> #{user?.id ?? '—'}</p>
+        <h3>Аккаунт</h3>
+        <dl className="AccountCard-rows">
+          <div>
+            <dt>Компания</dt>
+            <dd>{user?.company_name || user?.name || '—'}</dd>
+          </div>
+          <div>
+            <dt>Почта</dt>
+            <dd>{user?.email || '—'}</dd>
+          </div>
+        </dl>
         <Link to="/profile" className="Button">
-          Управление профилем
+          Открыть профиль
         </Link>
       </div>
     </div>

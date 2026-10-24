@@ -4,7 +4,6 @@ import Footer from './regular/footer';
 import { Routes, Route } from 'react-router-dom';
 import Dashboard from './pages/Dashboard'; // НАШ НОВЫЙ ДАШБОРД
 import ProfilePage from './pages/profilePage/profile_page';
-import SettingsPage from './pages/settings';
 import ProtectedRoute from './components/protected_route';
 import { useAuth } from './context/AuthContext';
 import { CircleLoader } from 'react-spinners';
@@ -60,7 +59,6 @@ const AppContent = () => {
               />
 
               <Route path='/profile' element={<ProtectedRoute> <ProfilePage /> </ProtectedRoute>} />
-              <Route path='/settings' element={<ProtectedRoute> <SettingsPage /> </ProtectedRoute>} />
             </Routes>
           </ErrorBoundary>
           <RegistrationModalFromContext />
