@@ -218,11 +218,11 @@ const RegistrationModal = ({
 
 const ProfileButton = () => {
   const { user, openModal } = useAuth();
-  const avatarSrc = user?.imageUrl || '/images/profile.png';
+  const label = (user?.company_name || user?.email || 'Профиль').trim();
 
   return (
-    <button className="profileButton" onClick={openModal} title={user?.company_name || 'Профиль'}>
-      <img className="imageProfile" src={avatarSrc} alt={user?.company_name || 'Профиль'} />
+    <button className="profileButton" onClick={openModal} title={label}>
+      {label.charAt(0).toUpperCase()}
     </button>
   );
 };

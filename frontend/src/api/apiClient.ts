@@ -37,6 +37,28 @@ export const clearTokens = () => {
   localStorage.removeItem(REFRESH_TOKEN_KEY);
 };
 
+export interface AccessTokenClaims {
+  user_id?: number;
+  email?: string;
+  company_name?: string;
+  sub?: string;
+  exp?: number;
+  iat?: number;
+}
+
+/** Читает payload JWT без проверки подписи. Подпись проверяет бэкенд. */
+export const decodeAccessToken = (token: string): AccessTokenClaims | null => {
+  const payload = token.split('.')[1];
+  if (!payload) return null;
+  try {
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
+    return JSON.parse(atob(padded)) as AccessTokenClaims;
+  } catch {
+    return null;
+  }
+};
+
 let onUnauthorized: UnauthorizedHandler | null = null;
 let onError: ErrorHandler | null = null;
 

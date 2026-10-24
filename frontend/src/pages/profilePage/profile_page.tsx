@@ -4,7 +4,6 @@ import { ProfileCardSkeleton } from '../../components/skeleton';
 import '../../App.css';
 import ProfileCard from './profileCard';
 import { ChangePasswordForm } from './ChangePasswordForm';
-import EditAvatar from './EditAvatar';
 import EditNameForm from './EditNameForm';
 import EmptyState from '../../components/EmptyState';
 import { toast } from 'sonner';
@@ -12,13 +11,8 @@ import { toast } from 'sonner';
 const ProfilePage = () => {
   const { user, loading, openModal, deleteAccount } = useAuth();
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
-  const [openAvatar, setOpenAvatar] = useState(false);
   const [isNameOpen, setIsNameOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const handleOpenAvatarImage = () => {
-    setOpenAvatar((prev) => !prev);
-  };
 
   const handleDeleteAccount = async () => {
     const confirmed = window.confirm(
@@ -57,13 +51,6 @@ const ProfilePage = () => {
           <ProfileCard />
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '20px' }}>
-            <div>
-              <button className="Button" onClick={handleOpenAvatarImage}>
-                {openAvatar ? 'Скрыть загрузку аватарки' : 'Сменить аватарку'}
-              </button>
-              {openAvatar && <EditAvatar />}
-            </div>
-
             <div>
               <button className="Button" onClick={() => setIsNameOpen(true)}>
                 Сменить название компании

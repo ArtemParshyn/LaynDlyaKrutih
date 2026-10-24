@@ -12,7 +12,6 @@ export interface UserInfo {
   // Обратная совместимость для UI компонентов:
   name?: string;
   createdAt?: string;
-  imageUrl?: string | null;
 }
 
 export interface LoginRequest {
@@ -80,7 +79,6 @@ export function normalizeUser(rawUser: any): UserInfo {
   const companyName = rawUser.company_name || rawUser.name || '';
   const createdAt = rawUser.created_at || rawUser.createdAt || new Date().toISOString();
   const updatedAt = rawUser.updated_at || rawUser.updatedAt || createdAt;
-  const localAvatar = rawUser.id ? localStorage.getItem(`user_avatar_${rawUser.id}`) : null;
 
   return {
     id: rawUser.id,
@@ -90,7 +88,6 @@ export function normalizeUser(rawUser: any): UserInfo {
     updated_at: updatedAt,
     name: companyName,
     createdAt: createdAt,
-    imageUrl: localAvatar || rawUser.imageUrl || null,
   };
 }
 
@@ -167,19 +164,6 @@ export const registration = async (data: RegisterData): Promise<UserInfo> => {
   return normalizeUser(createdUser);
 };
 
-// ==================== ПРОФИЛЬ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ ====================
-
-/**
- * GET /me
- * Возвращает информацию об авторизованном пользователе (BearerAuth)
- */
-export const getMe = async (): Promise<UserInfo> => {
-  const user = await apiClient<UserInfo>(`${API_URL}/me`, {
-    method: 'GET',
-  });
-  return normalizeUser(user);
-};
-
 // ==================== ВЫХОД ИЗ СИСТЕМЫ ====================
 
 /**
@@ -211,28 +195,6 @@ export const refreshTokenApi = async (data?: RefreshTokenRequest): Promise<Refre
 };
 
 // ==================== CRUD ПОЛЬЗОВАТЕЛЕЙ ====================
-
-/**
- * GET /users
- * Возвращает список всех пользователей из кэша Redis или базы PostgreSQL (BearerAuth)
- */
-export const getAllUsers = async (): Promise<UserInfo[]> => {
-  const users = await apiClient<UserInfo[]>(`${API_URL}/users`, {
-    method: 'GET',
-  });
-  return users.map(normalizeUser);
-};
-
-/**
- * GET /users/{id}
- * Возвращает данные пользователя по ID (BearerAuth)
- */
-export const getUserById = async (id: number): Promise<UserInfo> => {
-  const user = await apiClient<UserInfo>(`${API_URL}/users/${id}`, {
-    method: 'GET',
-  });
-  return normalizeUser(user);
-};
 
 /**
  * PATCH /users/{id}
@@ -282,31 +244,4 @@ export const changePassword = async (
     throw new Error('Новый пароль должен быть не менее 6 символов');
   }
   return updateUser(userId, { password: data.newPassword });
-};
-
-/**
- * Локальное сохранение аватарки профиля (так как на бэкенде нет endpoint загрузки файлов)
- */
-export const updateAvatar = async (file: File, userId?: number): Promise<{ user: UserInfo }> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = reader.result as string;
-      if (userId) {
-        localStorage.setItem(`user_avatar_${userId}`, base64);
-      }
-      resolve({
-        user: {
-          id: userId || 0,
-          email: '',
-          company_name: '',
-          created_at: '',
-          updated_at: '',
-          imageUrl: base64,
-        },
-      });
-    };
-    reader.onerror = () => reject(new Error('Не удалось прочитать файл изображения'));
-    reader.readAsDataURL(file);
-  });
 };

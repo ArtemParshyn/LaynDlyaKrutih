@@ -4,7 +4,6 @@ import '../../App.css';
 const ProfileCardSkeleton = () => {
     return (
         <div className="ProfileCard">
-            <Skeleton circle className="skeleton-avatar" />
             <div className="ProfileCard-info">
                 <Skeleton className="skeleton-title" />
                 <Skeleton className="skeleton-text" />

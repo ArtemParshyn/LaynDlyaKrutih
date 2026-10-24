@@ -2,11 +2,10 @@ import { createContext, useContext, useState, useEffect, ReactNode, useCallback 
 import {
   login as apiLogin,
   registration as apiRegister,
-  getMe,
   logoutApi,
   updateUser as apiUpdateUser,
   deleteUser as apiDeleteUser,
-  updateAvatar as apiUploadAvatar,
+  normalizeUser,
   LoginRequest,
   RegisterData,
   UserInfo,
@@ -15,7 +14,7 @@ import {
   setUnauthorizedHandler,
   setErrorHandler,
   getAccessToken,
-  getRefreshToken,
+  decodeAccessToken,
   clearTokens,
 } from '../api/apiClient';
 import { toast } from 'sonner';
@@ -27,7 +26,6 @@ interface AuthContextType {
   login: (data: LoginRequest) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
-  updateAvatar: (file: File) => Promise<void>;
   isModalOpen: boolean;
   openModal: () => void;
   closeModal: () => void;
@@ -37,6 +35,26 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
+
+const userFromAccessToken = (): UserInfo | null => {
+  const token = getAccessToken();
+  if (!token) return null;
+
+  const claims = decodeAccessToken(token);
+  if (!claims) return null;
+  if (claims.exp && claims.exp * 1000 <= Date.now()) return null;
+
+  const id = Number(claims.user_id ?? claims.sub);
+  if (!Number.isFinite(id)) return null;
+
+  return normalizeUser({
+    id,
+    email: claims.email || '',
+    company_name: claims.company_name || '',
+    created_at: claims.iat ? new Date(claims.iat * 1000).toISOString() : '',
+    updated_at: '',
+  });
+};
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isModalOpen, setModalOpen] = useState(false);
@@ -60,43 +78,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [handleUnauthorized]);
 
-  // Проверка сессии при загрузке приложения
+  // Профиль читается из access JWT (user_id, email, company_name). Запроса /me нет.
   useEffect(() => {
-    const checkAuth = async () => {
-      const token = getAccessToken() || getRefreshToken();
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const currentUser = await getMe();
-        setUser(currentUser);
-      } catch {
-        setUser(null);
-        clearTokens();
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAuth();
+    const current = userFromAccessToken();
+    if (!current && getAccessToken()) clearTokens();
+    setUser(current);
+    setLoading(false);
   }, []);
 
   const login = async (data: LoginRequest) => {
-    const result = await apiLogin(data);
-    setUser(result.user);
+    await apiLogin(data);
+    setUser(userFromAccessToken());
   };
 
   const register = async (data: RegisterData) => {
     await apiRegister(data);
     // Автоматический логин после успешной регистрации для мгновенного входа
     try {
-      const loginResult = await apiLogin({
+      await apiLogin({
         email: data.email,
         password: data.password,
       });
-      setUser(loginResult.user);
+      setUser(userFromAccessToken());
     } catch {
       // Если авто-логин не прошел, просим войти вручную
     }
@@ -113,12 +116,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const updateAvatar = async (file: File) => {
-    if (!user) return;
-    const res = await apiUploadAvatar(file, user.id);
-    setUser((prev) => (prev ? { ...prev, imageUrl: res.user.imageUrl } : null));
-  };
-
   const openModal = () => setModalOpen(true);
   const closeModal = () => setModalOpen(false);
 
@@ -130,7 +127,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const updated = await apiUpdateUser(user.id, { password: newPassword });
-    setUser(updated);
+    setUser(userFromAccessToken() || updated);
   };
 
   const updateName = async (name: string) => {
@@ -141,7 +138,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const updated = await apiUpdateUser(user.id, { company_name: trimmed });
-    setUser(updated);
+    setUser({ ...(userFromAccessToken() || updated), company_name: trimmed, name: trimmed });
   };
 
   const deleteAccount = async () => {
@@ -160,7 +157,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         login,
         register,
         logout,
-        updateAvatar,
         isModalOpen,
         openModal,
         closeModal,

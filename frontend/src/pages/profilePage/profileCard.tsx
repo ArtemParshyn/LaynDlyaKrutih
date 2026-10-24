@@ -13,16 +13,8 @@ const ProfileCard = () => {
       })
     : '—';
 
-  const avatarSrc = user?.imageUrl || '/images/profile.png';
-
   return (
     <div className="ProfileCard">
-      <img
-        src={avatarSrc}
-        className="ProfilePage-avatar"
-        alt={user?.company_name || 'Аватар пользователя'}
-      />
-
       <div className="ProfileCard-info">
         <h1>{user?.company_name || user?.name || 'Пользователь'}</h1>
         <p><strong>Email:</strong> {user?.email}</p>
