@@ -1,11 +1,15 @@
 package database
 
 import (
+	"errors"
 	"fmt"
-	"ledger/model"
+	"ledger/migrations"
 	"log"
 	"os"
 
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -20,6 +24,15 @@ func Connect() *gorm.DB {
 	password := getEnv("DB_PASSWORD", "secret123")
 	dbname := getEnv("DB_NAME", "ledger_db")
 
+	// 1. Run UP migrations using golang-migrate
+	dbURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		user, password, host, port, dbname)
+
+	if err := runMigrations(dbURL); err != nil {
+		log.Fatalf("Database migration failed: %v", err)
+	}
+
+	// 2. Open GORM connection
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
 		host, user, password, dbname, port)
 
@@ -30,21 +43,28 @@ func Connect() *gorm.DB {
 		log.Fatalf("Failed to connect to PostgreSQL: %v", err)
 	}
 
-	// Auto-migrate tables
-	err = db.AutoMigrate(
-		&model.Operation{},
-		&model.Statement{},
-		&model.ForecastDay{},
-		&model.ForecastAlert{},
-		&model.ForecastHistory{},
-	)
+	DB = db
+	log.Println("PostgreSQL connected successfully")
+	return DB
+}
+
+func runMigrations(dbURL string) error {
+	driver, err := iofs.New(migrations.FS, ".")
 	if err != nil {
-		log.Fatalf("Database auto-migration failed: %v", err)
+		return fmt.Errorf("failed to create migration iofs source: %w", err)
 	}
 
-	DB = db
-	log.Println("PostgreSQL connected and tables migrated successfully")
-	return DB
+	m, err := migrate.NewWithSourceInstance("iofs", driver, dbURL)
+	if err != nil {
+		return fmt.Errorf("failed to init migrate instance: %w", err)
+	}
+
+	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return fmt.Errorf("failed to run up migrations: %w", err)
+	}
+
+	log.Println("Database migrations applied (.up.sql)")
+	return nil
 }
 
 func GetDB() *gorm.DB {
