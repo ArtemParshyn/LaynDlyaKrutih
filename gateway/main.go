@@ -92,8 +92,10 @@ func main() {
 	protected := router.Group("/")
 	protected.Use(auth.AuthMiddleware())
 	{
-		// User profile & CRUD
+		// User profile & CRUD (IDOR protected: users can only view/edit/delete themselves)
 		protected.GET("/me", userHandler.GetMe)
+		protected.PATCH("/me", userHandler.UpdateMe)
+		protected.DELETE("/me", userHandler.DeleteMe)
 		protected.GET("/users", userHandler.GetAllUsers)
 		protected.GET("/users/:id", userHandler.GetUser)
 		protected.PATCH("/users/:id", userHandler.UpdateUser)

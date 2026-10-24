@@ -348,6 +348,33 @@ paths:
       tags:
       - Auth
   /me:
+    delete:
+      description: Удаляет текущего авторизованного пользователя из базы PostgreSQL
+        и сбрасывает кэш в Redis
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SuccessResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удаление профиля текущего пользователя
+      tags:
+      - Users
     get:
       description: Возвращает информацию об авторизованном пользователе
       produces:
@@ -368,6 +395,46 @@ paths:
       security:
       - BearerAuth: []
       summary: Профиль текущего пользователя
+      tags:
+      - Users
+    patch:
+      consumes:
+      - application/json
+      description: Обновляет пароль и/или название компании текущего авторизованного
+        пользователя
+      parameters:
+      - description: Поля для обновления
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserInfo'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Обновление профиля текущего пользователя
       tags:
       - Users
   /refresh:
@@ -436,22 +503,16 @@ paths:
       - Auth
   /users:
     get:
-      description: Возвращает список всех пользователей из кэша Redis или базы PostgreSQL
+      description: 'Запрещён: пользователи не могут просматривать список чужих аккаунтов'
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/dto.UserInfo'
-            type: array
         "401":
           description: Unauthorized
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
+        "403":
+          description: Forbidden
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
@@ -461,7 +522,8 @@ paths:
       - Users
   /users/{id}:
     delete:
-      description: Удаляет пользователя из базы PostgreSQL и сбрасывает кэш в Redis
+      description: Удаляет пользователя из базы PostgreSQL и сбрасывает кэш в Redis.
+        Доступ разрешён только к своему профилю.
       parameters:
       - description: ID пользователя
         in: path
@@ -483,6 +545,10 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Not Found
           schema:
@@ -497,7 +563,8 @@ paths:
       tags:
       - Users
     get:
-      description: Возвращает данные пользователя из кэша Redis или базы PostgreSQL
+      description: Возвращает данные пользователя. Доступ разрешён только к своему
+        профилю.
       parameters:
       - description: ID пользователя
         in: path
@@ -519,6 +586,10 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
         "404":
           description: Not Found
           schema:
@@ -531,7 +602,8 @@ paths:
     patch:
       consumes:
       - application/json
-      description: Обновляет пароль и/или название компании пользователя
+      description: Обновляет пароль и/или название компании пользователя. Доступ разрешён
+        только к своему профилю.
       parameters:
       - description: ID пользователя
         in: path
@@ -557,6 +629,10 @@ paths:
             $ref: '#/definitions/dto.ErrorResponse'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
         "404":
