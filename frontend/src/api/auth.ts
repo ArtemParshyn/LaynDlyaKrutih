@@ -111,12 +111,23 @@ export const registration = async (data: RegisterData): Promise<UserInfo> => {
 
 
 
+  try {
   const createdUser = await apiClient<UserInfo>(`${API_URL}/register`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 
   return normalizeUser(createdUser);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '';
+    if (msg.includes('already exists') || msg.includes('23505') || msg.includes('duplicate')) {
+      throw new Error('Эта почта уже зарегистрирована');
+    }
+    if (msg === 'failed to create user') {
+      throw new Error('Не удалось создать пользователя. Попробуйте другую почту.');
+    }
+    throw err;
+  }
 };
 
 // ==================== ВЫХОД ИЗ СИСТЕМЫ ====================
