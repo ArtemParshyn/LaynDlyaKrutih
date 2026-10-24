@@ -39,14 +39,31 @@ func (h *LedgerHandler) UploadStatements(c *gin.Context) {
 			return
 		}
 	} else {
-		// Fallback check if body sent directly
-		body, readErr := io.ReadAll(c.Request.Body)
-		if readErr != nil || len(body) == 0 {
-			c.JSON(http.StatusUnprocessableEntity, dto.ErrorResponse{Error: "file field is required in form-data"})
-			return
+		// Check if file is uploaded under another multipart field name
+		if form, formErr := c.MultipartForm(); formErr == nil && form != nil {
+			for _, files := range form.File {
+				if len(files) > 0 {
+					f, openErr := files[0].Open()
+					if openErr == nil {
+						filename = files[0].Filename
+						fileBytes, _ = io.ReadAll(f)
+						f.Close()
+						break
+					}
+				}
+			}
 		}
-		filename = "statement.csv"
-		fileBytes = body
+
+		if len(fileBytes) == 0 {
+			// Fallback check if body sent directly
+			body, readErr := io.ReadAll(c.Request.Body)
+			if readErr != nil || len(body) == 0 {
+				c.JSON(http.StatusUnprocessableEntity, dto.ErrorResponse{Error: "file field is required in form-data"})
+				return
+			}
+			filename = "statement.csv"
+			fileBytes = body
+		}
 	}
 
 	if err := h.svc.ProcessAndSaveStatement(userID, filename, fileBytes); err != nil {

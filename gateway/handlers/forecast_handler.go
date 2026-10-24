@@ -65,14 +65,31 @@ func (h *ForecastHandler) UploadStatement(c *gin.Context) {
 			return
 		}
 	} else {
-		// Fallback: check if raw CSV body was sent
-		body, readErr := io.ReadAll(c.Request.Body)
-		if readErr != nil || len(body) == 0 {
-			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "CSV file is required (form-data 'file' or request body)"})
-			return
+		// Check if file is uploaded under another multipart field name (e.g. statement, upload, csv)
+		if form, formErr := c.MultipartForm(); formErr == nil && form != nil {
+			for _, files := range form.File {
+				if len(files) > 0 {
+					f, openErr := files[0].Open()
+					if openErr == nil {
+						filename = files[0].Filename
+						fileBytes, _ = io.ReadAll(f)
+						f.Close()
+						break
+					}
+				}
+			}
 		}
-		filename = "statement.csv"
-		fileBytes = body
+
+		if len(fileBytes) == 0 {
+			// Fallback: check if raw CSV body was sent
+			body, readErr := io.ReadAll(c.Request.Body)
+			if readErr != nil || len(body) == 0 {
+				c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "CSV file is required (form-data or request body)"})
+				return
+			}
+			filename = "statement.csv"
+			fileBytes = body
+		}
 	}
 
 	forecast, err := h.orchestrator.UploadStatementAndRecalculate(c.Request.Context(), userID, filename, fileBytes)
