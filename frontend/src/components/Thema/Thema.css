@@ -1,0 +1,63 @@
+/* ============ THEME SWAP ============ */
+.ThemeSwap {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    width: clamp(35px, 4vw, 50px);
+    height: clamp(35px, 4vw, 50px);
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: transform 0.2s;
+}
+
+.ThemeSwap:hover {
+    transform: scale(1.1) rotate(15deg);
+    background: var(--surface-button);
+}
+
+.ThemeSwap:disabled {
+    cursor: default;
+    transform: none;
+}
+
+.ThemeSwap img {
+    width: 70%;
+    height: 70%;
+    object-fit: contain;
+}
+
+/* Оверлей для анимации смены темы */
+.theme-overlay {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    animation: theme-swap-anim 1.1s ease-in-out forwards;
+}
+
+.theme-overlay.to-dark {
+    background: #06120e;
+}
+
+.theme-overlay.to-light {
+    background: #f8fafc;
+}
+
+@keyframes theme-swap-anim {
+    0% {
+        transform: scale(0);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 0;
+    }
+}
