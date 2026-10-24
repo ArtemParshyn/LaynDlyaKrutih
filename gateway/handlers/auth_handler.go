@@ -117,7 +117,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	accessToken, err := auth.GenerateAccessToken(user.ID, user.Email)
+	accessToken, err := auth.GenerateAccessToken(user.ID, user.Email, user.CompanyName)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "failed to generate access token"})
 		return
@@ -207,7 +207,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		return
 	}
 
-	newAccessToken, err := auth.GenerateAccessToken(session.UserID, session.Email)
+	newAccessToken, err := auth.GenerateAccessToken(session.UserID, session.Email, session.CompanyName)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "failed to generate access token"})
 		return

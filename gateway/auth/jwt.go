@@ -17,8 +17,9 @@ import (
 
 type Claims struct {
 	jwt.RegisteredClaims
-	UserID uint   `json:"user_id"`
-	Email  string `json:"email"`
+	UserID      uint   `json:"user_id"`
+	Email       string `json:"email"`
+	CompanyName string `json:"company_name"`
 }
 
 func getJWTSecret() []byte {
@@ -30,15 +31,16 @@ func getJWTSecret() []byte {
 }
 
 // GenerateAccessToken creates a short-lived access JWT token (e.g. 15 minutes)
-func GenerateAccessToken(userID uint, email string) (string, error) {
+func GenerateAccessToken(userID uint, email, companyName string) (string, error) {
 	claims := Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Subject:   strconv.FormatUint(uint64(userID), 10),
 		},
-		UserID: userID,
-		Email:  email,
+		UserID:      userID,
+		Email:       email,
+		CompanyName: companyName,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -110,6 +112,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		c.Set("user_id", claims.UserID)
 		c.Set("email", claims.Email)
+		c.Set("company_name", claims.CompanyName)
 		c.Next()
 	}
 }
