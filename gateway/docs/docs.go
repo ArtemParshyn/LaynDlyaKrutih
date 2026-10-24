@@ -846,6 +846,12 @@ const docTemplate = `{
                         "$ref": "#/definitions/dto.ForecastDay"
                     }
                 },
+                "recurring_payments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ScheduledPayment"
+                    }
+                },
                 "rough": {
                     "type": "boolean"
                 }

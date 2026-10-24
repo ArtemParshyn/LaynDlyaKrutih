@@ -76,6 +76,11 @@ func (s *OrchestratorService) Recalculate(ctx context.Context, userID uint) (*dt
 		return nil, fmt.Errorf("failed to save forecast to ledger: %w", err)
 	}
 
+	forecastResp.RecurringPayments = ledgerData.RecurringPayments
+	if forecastResp.RecurringPayments == nil {
+		forecastResp.RecurringPayments = []dto.ScheduledPayment{}
+	}
+
 	return forecastResp, nil
 }
 
@@ -129,10 +134,28 @@ func (s *OrchestratorService) CalculateScenario(ctx context.Context, userID uint
 		return nil, fmt.Errorf("scenario forecast calculation failed: %w", err)
 	}
 
+	scenarioResp.RecurringPayments = ledgerData.RecurringPayments
+	if scenarioResp.RecurringPayments == nil {
+		scenarioResp.RecurringPayments = []dto.ScheduledPayment{}
+	}
+
 	return scenarioResp, nil
 }
 
 // GetForecast reads the already calculated days and alerts from Ledger without recalculating
 func (s *OrchestratorService) GetForecast(ctx context.Context, userID uint) (*dto.ForecastResponse, error) {
-	return s.ledger.GetForecast(ctx, userID)
+	resp, err := s.ledger.GetForecast(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if resp.RecurringPayments == nil {
+		resp.RecurringPayments = []dto.ScheduledPayment{}
+	}
+
+	ledgerData, err := s.ledger.GetData(ctx, userID)
+	if err == nil && ledgerData != nil && len(ledgerData.RecurringPayments) > 0 {
+		resp.RecurringPayments = ledgerData.RecurringPayments
+	}
+
+	return resp, nil
 }

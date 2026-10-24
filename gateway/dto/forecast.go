@@ -37,9 +37,10 @@ type Alert struct {
 }
 
 type ForecastResponse struct {
-	Days   []ForecastDay `json:"days"`
-	Alerts []Alert       `json:"alerts"`
-	Rough  bool          `json:"rough"`
+	Days              []ForecastDay      `json:"days"`
+	Alerts            []Alert            `json:"alerts"`
+	Rough             bool               `json:"rough"`
+	RecurringPayments []ScheduledPayment `json:"recurring_payments"`
 }
 
 // LedgerData is received from the Ledger (выписка) service

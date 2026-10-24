@@ -61,6 +61,10 @@ definitions:
         items:
           $ref: '#/definitions/dto.ForecastDay'
         type: array
+      recurring_payments:
+        items:
+          $ref: '#/definitions/dto.ScheduledPayment'
+        type: array
       rough:
         type: boolean
     type: object
