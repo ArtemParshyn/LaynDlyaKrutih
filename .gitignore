@@ -4,3 +4,7 @@ __pycache__/
 *.pyc
 .idea/
 .DS_Store
+
+# 1C: local infobase runtime (not for distribution)
+1CBase/
+1CIntegration/TrainingBase.dt
