@@ -21,6 +21,9 @@ func OneCTokenMiddleware() gin.HandlerFunc {
 		if provided == "" {
 			provided = strings.TrimSpace(c.Query("token"))
 		}
+		if provided == "0" {
+			provided = strings.TrimSpace(c.Query("token"))
+		}
 		if provided == "" {
 			provided = strings.TrimSpace(strings.TrimPrefix(c.GetHeader("Authorization"), "Bearer "))
 		}
