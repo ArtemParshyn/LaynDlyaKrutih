@@ -273,59 +273,39 @@ func (s *OrchestratorService) CreateEventAndRecalculate(ctx context.Context, use
 
 // CalculateScenario computes an alternative "what if" second line without saving or overwriting the base forecast
 func (s *OrchestratorService) CalculateScenario(ctx context.Context, userID uint, whatIfEvents []dto.ScheduledPayment, changes []dto.ScenarioOperation) (*dto.ForecastResponse, error) {
-	ledgerData, err := s.ledger.GetData(ctx, userID)
+	base, err := s.GetForecast(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch ledger data: %w", err)
+		return nil, fmt.Errorf("failed to fetch base forecast: %w", err)
 	}
-
-	plannedEvents, err := s.planning.GetEvents(ctx, userID)
-	if err != nil {
-		log.Printf("Notice: could not fetch planning events for user %d: %v", userID, err)
-		plannedEvents = []dto.ScheduledPayment{}
+	if base == nil || len(base.Days) == 0 {
+		return nil, fmt.Errorf("базовый прогноз ещё не готов")
 	}
-
-	scheduled := make([]dto.ScheduledPayment, 0, len(ledgerData.RecurringPayments)+len(ledgerData.Scheduled)+len(plannedEvents)+len(whatIfEvents))
-	scheduled = append(scheduled, ledgerData.RecurringPayments...)
-	scheduled = append(scheduled, ledgerData.Scheduled...)
-	scheduled = append(scheduled, plannedEvents...)
-	scheduled = append(scheduled, whatIfEvents...)
-
-	history := append([]dto.HistoryDay(nil), ledgerData.History...)
+	// Apply temporary signed deltas to every day after the changed date. This
+	// keeps scenarios instant and avoids retraining Prophet or mutating Ledger.
 	for _, change := range changes {
 		if change.Amount <= 0 { continue }
-		found := false
-		for i := range history {
-			if history[i].Date != change.Date { continue }
-			if change.IsIncome { history[i].IrregularIn += change.Amount } else { history[i].IrregularOut += change.Amount }
-			found = true
-			break
-		}
-		if !found {
-			item := dto.HistoryDay{Date: change.Date}
-			if change.IsIncome { item.IrregularIn = change.Amount } else { item.IrregularOut = change.Amount }
-			history = append(history, item)
+		delta := change.Amount
+		if !change.IsIncome { delta = -delta }
+		for i := range base.Days {
+			if base.Days[i].Date < change.Date { continue }
+			base.Days[i].ExpectedBalance += delta
+			base.Days[i].BalanceLow += delta
+			base.Days[i].BalanceHigh += delta
 		}
 	}
-
-	forecastReq := dto.ForecastRequest{
-		AsOf:           ledgerData.AsOf,
-		OpeningBalance: ledgerData.OpeningBalance,
-		History:        history,
-		Scheduled:      scheduled,
+	for _, event := range whatIfEvents {
+		if event.Amount <= 0 { continue }
+		delta := event.Amount
+		if !event.IsIncome { delta = -delta }
+		for i := range base.Days {
+			if base.Days[i].Date < event.Date { continue }
+			base.Days[i].ExpectedBalance += delta
+			base.Days[i].BalanceLow += delta
+			base.Days[i].BalanceHigh += delta
+		}
 	}
-
-	// Calculate scenario line only - do NOT save to ledger
-	scenarioResp, err := s.forecast.Calculate(ctx, &forecastReq)
-	if err != nil {
-		return nil, fmt.Errorf("scenario forecast calculation failed: %w", err)
-	}
-
-	scenarioResp.RecurringPayments = ledgerData.RecurringPayments
-	if scenarioResp.RecurringPayments == nil {
-		scenarioResp.RecurringPayments = []dto.ScheduledPayment{}
-	}
-
-	return scenarioResp, nil
+	base.Summary = "Временный сценарий: базовый прогноз не изменён"
+	return base, nil
 }
 
 // GetForecast reads the already calculated days and alerts from Ledger without recalculating

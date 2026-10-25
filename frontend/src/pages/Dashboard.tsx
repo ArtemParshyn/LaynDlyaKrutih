@@ -292,6 +292,9 @@ const Dashboard = () => {
                         <button className="Button" type="button" onClick={handleProcess}>
                             Обработать
                         </button>
+                        <button className={scenarioMode ? 'Button is-active' : 'Button'} type="button" onClick={() => { setScenarioMode((value) => !value); setScenarioDate(''); }}>
+                            {scenarioMode ? 'Закрыть «Что если»' : 'Что если?'}
+                        </button>
                         <label className="Button upload-btn">
                             Объединить CSV
                             <input type="file" accept=".csv" onChange={(event) => handleFileUpload(event, true)} hidden />
