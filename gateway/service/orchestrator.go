@@ -52,7 +52,7 @@ func (s *OrchestratorService) Recalculate(ctx context.Context, userID uint) (*dt
 	if err != nil { return nil, err }
 	view.Days = []dto.ForecastDay{}
 	view.Alerts = []dto.Alert{}
-	view.Training = s.startTraining(ctx, userID)
+	view.Training = s.startTrainingCSV(ctx, userID, fileData)
 	return view, nil
 }
 
@@ -309,6 +309,9 @@ func (s *OrchestratorService) GetForecast(ctx context.Context, userID uint) (*dt
 	if resp.RecurringPayments == nil {
 		resp.RecurringPayments = []dto.ScheduledPayment{}
 	}
+	// Analytics is stored by ML outside Ledger, so refresh it on reads instead
+	// of losing it when the forecast is loaded from the ledger database.
+	s.enrichWithAnalytics(ctx, userID, resp)
 	// The scenario editor needs the complete statement, not only the ten rows
 	// shown in the dashboard's "recent operations" list.
 	resp.Operations, err = s.ledger.Operations(ctx, userID)
@@ -390,7 +393,14 @@ func (s *OrchestratorService) startTraining(ctx context.Context, userID uint) *d
 		s.setJob(userID, trainJob{status: "failed", err: training.Error})
 		return training
 	}
-	csv := prophetCSV(ops)
+	return s.startTrainingCSV(ctx, userID, prophetCSV(ops))
+}
+
+// startTrainingCSV forwards the original statement whenever possible. The
+// Prophet service also runs categorization during /train, and categorization
+// needs counterparty_inn, counterparty_name and payment_purpose. Rebuilding a
+// CSV from the ledger's compact operation DTO silently loses those columns.
+func (s *OrchestratorService) startTrainingCSV(ctx context.Context, userID uint, csv []byte) *dto.Training {
 	train, err := s.prophet.Train(ctx, companyID(userID), csv)
 	if err != nil {
 		training := &dto.Training{Status: "failed", Error: err.Error()}
