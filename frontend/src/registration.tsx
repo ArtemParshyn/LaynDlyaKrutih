@@ -4,6 +4,7 @@ import ReactModal from 'react-modal';
 import { useAuth } from './context/AuthContext';
 import { CircleLoader } from 'react-spinners';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
 
 ReactModal.setAppElement('#root');
 
@@ -264,13 +265,16 @@ const RegistrationModal = ({
 };
 
 const ProfileButton = () => {
-  const { user, openModal } = useAuth();
+  const { user } = useAuth();
   const label = (user?.company_name || user?.email || 'Профиль').trim();
 
   return (
-    <button className="profileButton" onClick={openModal} title={label} aria-label={label}>
-      <img className="imageProfile" src="/images/profile.png" alt="" />
-    </button>
+    <Link className="profileButton" to="/profile" title={label} aria-label="Открыть профиль">
+      <svg className="profile-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="8" r="3.25" />
+        <path d="M5.5 20c.7-3.4 3-5.2 6.5-5.2s5.8 1.8 6.5 5.2" />
+      </svg>
+    </Link>
   );
 };
 
