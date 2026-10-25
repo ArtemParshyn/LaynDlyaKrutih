@@ -114,4 +114,15 @@ export const createEvent = (event: {
     body: JSON.stringify(event),
   });
 
+export const calculateScenario = (pulseId: string, events: Array<{
+  date: string;
+  amount: number;
+  is_income: boolean;
+  category: string;
+}>) =>
+  apiClient<ForecastResponse>(pulseUrl(pulseId, '/scenarios'), {
+    method: 'POST',
+    body: JSON.stringify({ events }),
+  });
+
 export const rubles = (kopecks: number) => Math.round(kopecks) / 100;

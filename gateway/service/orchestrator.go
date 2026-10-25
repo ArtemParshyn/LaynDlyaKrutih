@@ -281,6 +281,37 @@ func (s *OrchestratorService) CalculateScenario(ctx context.Context, userID uint
 	// Replace selected rows in a temporary statement only; Ledger and the
 	// user's model are untouched. ID is the stable identity from Ledger.
 	temporary := append([]dto.Operation(nil), ops...)
+	actualEnd := ""
+	if len(ops) > 0 {
+		actualEnd = ops[len(ops)-1].Date
+	}
+	// For a future intervention, turn the base forecast up to the intervention
+	// date into temporary daily movements. Prophet must see the whole path:
+	// actual statement -> original forecast -> hypothetical operation.
+	forecastDates := make(map[string]bool)
+	for _, day := range base.Days {
+		forecastDates[day.Date] = true
+	}
+	lastBalance := int64(0)
+	if len(base.History) > 0 {
+		lastBalance = base.History[len(base.History)-1].Balance
+	}
+	lastDate := actualEnd
+	addForecastUntil := func(until string) {
+		for _, day := range base.Days {
+			if day.Date <= lastDate || day.Date > until || !forecastDates[day.Date] {
+				continue
+			}
+			balance := day.ExpectedBalance
+			temporary = append(temporary, dto.Operation{
+				Date: day.Date, Amount: balance - lastBalance,
+				Description: "Базовый прогноз (временная история)", Category: "Сценарий",
+				IsIncome: balance >= lastBalance,
+			})
+			lastBalance = balance
+			lastDate = day.Date
+		}
+	}
 	for _, change := range changes {
 		if change.Amount <= 0 { continue }
 		amount := change.Amount
@@ -298,18 +329,21 @@ func (s *OrchestratorService) CalculateScenario(ctx context.Context, userID uint
 			}
 			if found { continue }
 		}
+		if change.Date > actualEnd {
+			addForecastUntil(change.Date)
+		}
 		temporary = append(temporary, dto.Operation{Date: change.Date, Amount: amount, IsIncome: change.IsIncome, Description: change.Description, Category: "Сценарий"})
 	}
 	for _, event := range whatIfEvents {
 		if event.Amount <= 0 { continue }
 		amount := event.Amount
 		if !event.IsIncome { amount = -amount }
-		 temporary = append(temporary, dto.Operation{Date: event.Date, Amount: amount, IsIncome: event.IsIncome, Description: "Сценарное событие", Category: event.Category})
+		if event.Date > actualEnd {
+			addForecastUntil(event.Date)
+		}
+		temporary = append(temporary, dto.Operation{Date: event.Date, Amount: amount, IsIncome: event.IsIncome, Description: "Сценарное событие", Category: event.Category})
 	}
-	sort.SliceStable(temporary, func(i, j int) bool {
-		if temporary[i].Date == temporary[j].Date { return temporary[i].ID < temporary[j].ID }
-		return temporary[i].Date < temporary[j].Date
-	})
+	sort.SliceStable(temporary, func(i, j int) bool { return temporary[i].Date < temporary[j].Date })
 	scenarioID := fmt.Sprintf("scenario-%d-%d", userID, time.Now().UnixNano())
 	train, err := s.prophet.Train(ctx, scenarioID, prophetCSV(temporary))
 	if err != nil { return nil, fmt.Errorf("scenario training failed: %w", err) }

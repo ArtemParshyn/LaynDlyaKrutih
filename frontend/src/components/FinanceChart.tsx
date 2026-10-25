@@ -8,6 +8,7 @@ interface ChartPoint {
     low?: number;
     high?: number;
     mid?: number;
+    scenario?: number;
 }
 
 interface FinanceChartProps {
@@ -15,6 +16,7 @@ interface FinanceChartProps {
     forecast: ChartPoint[];
     showBounds?: boolean;
     onDateClick?: (date: string) => void;
+    scenarioForecast?: ChartPoint[];
 }
 
 const money = (value: number) => {
@@ -41,7 +43,7 @@ const dayLabel = (value: string) => {
 const levelOf = (point: ChartPoint) =>
     point.balance != null ? point.balance : point.mid;
 
-const FinanceChart = ({ history, forecast, showBounds = false, onDateClick }: FinanceChartProps) => {
+const FinanceChart = ({ history, forecast, showBounds = false, onDateClick, scenarioForecast = [] }: FinanceChartProps) => {
     const [windowDays, setWindowDays] = useState(90);
     const [dragFrom, setDragFrom] = useState<string | null>(null);
     const [dragTo, setDragTo] = useState<string | null>(null);
@@ -71,6 +73,8 @@ const FinanceChart = ({ history, forecast, showBounds = false, onDateClick }: Fi
             mid: point.balance,
         }));
     }
+    const scenarioByDate = new Map(scenarioForecast.map((point) => [point.date, point.balance]));
+    points.forEach((point) => { point.scenario = scenarioByDate.get(point.date); });
 
     const forecastValues = safeForecast.flatMap((point) => [point.low, point.high, point.balance])
         .filter((value): value is number => value != null);
@@ -218,6 +222,9 @@ const FinanceChart = ({ history, forecast, showBounds = false, onDateClick }: Fi
                                             : 'Нижняя граница'
                             )}
                         />
+                    )}
+                    {!!scenarioForecast.length && (
+                        <Area type="monotone" dataKey="scenario" name="scenario" stroke="#c5304b" strokeWidth={3} strokeDasharray="7 5" fill="transparent" connectNulls={false} activeDot={{ r: 4 }} />
                     )}
                     {showBounds && (
                         <Area type="monotone" dataKey="low" name="low" stroke="#c5304b" strokeDasharray="4 4" strokeWidth={3.5} fill="transparent" connectNulls={false} activeDot={{ r: 4 }} />

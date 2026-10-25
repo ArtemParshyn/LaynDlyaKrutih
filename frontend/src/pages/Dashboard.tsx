@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import '../App.css';
 import FinanceChart from '../components/FinanceChart';
 import { toast } from 'sonner';
-import { addOperation, getForecast, processForecast, uploadStatement, ForecastAlert, ForecastResponse, ScheduledPayment, StatementOperation, rubles } from '../api/forecast';
+import { addOperation, calculateScenario, getForecast, processForecast, uploadStatement, ForecastAlert, ForecastResponse, ScheduledPayment, StatementOperation, rubles } from '../api/forecast';
 import { getPulse, renamePulse } from '../api/pulses';
 
 const Dashboard = () => {
@@ -21,6 +21,11 @@ const Dashboard = () => {
     const [operationIncome, setOperationIncome] = useState(false);
     const [operationNote, setOperationNote] = useState('');
     const [operationRecurring, setOperationRecurring] = useState(false);
+    const [scenarioMode, setScenarioMode] = useState(false);
+    const [scenarioDate, setScenarioDate] = useState('');
+    const [scenarioAmount, setScenarioAmount] = useState('');
+    const [scenarioIncome, setScenarioIncome] = useState(false);
+    const [scenarioResult, setScenarioResult] = useState<ForecastResponse | null>(null);
 
     const recurringPayments = (data: ForecastResponse | null): ScheduledPayment[] =>
         data?.recurring_payments || [];
@@ -198,11 +203,39 @@ const Dashboard = () => {
     };
 
     const handleChartDateClick = (date: string) => {
+        if (scenarioMode) {
+            setScenarioDate(date);
+            return;
+        }
         setOperationDate(date);
         setOperationOpen(true);
         window.requestAnimationFrame(() => {
             document.querySelector('.GridAdd')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
+    };
+
+    const runScenario = async (event: React.FormEvent) => {
+        event.preventDefault();
+        const amount = Number(scenarioAmount.replace(',', '.'));
+        if (!scenarioDate || !Number.isFinite(amount) || amount <= 0) {
+            toast.error('Выберите дату и укажите сумму больше нуля');
+            return;
+        }
+        setIsLoading(true);
+        try {
+            const result = await calculateScenario(pulseId, [{
+                date: scenarioDate,
+                amount: Math.round(amount * 100),
+                is_income: scenarioIncome,
+                category: 'Сценарий',
+            }]);
+            setScenarioResult(result);
+            toast.success('Prophet переобучен на временном сценарии');
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Не удалось переобучить модель');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     useEffect(() => {
@@ -398,6 +431,7 @@ const Dashboard = () => {
                         <FinanceChart
                             showBounds={showBounds}
                             onDateClick={handleChartDateClick}
+                            scenarioForecast={scenarioResult?.days?.map((day) => ({ date: day.date, balance: rubles(day.expected_balance) })) || []}
                             history={(forecast.history?.length
                                 ? forecast.history
                                 : [{ date: forecast.days[0].date, balance: forecast.days[0].expected_balance }]
@@ -412,6 +446,19 @@ const Dashboard = () => {
                                 high: rubles(day.balance_high),
                             }))}
                         />
+                        <div className="ScenarioTools">
+                            <button className={scenarioMode ? 'Button is-active' : 'Button'} type="button" onClick={() => { setScenarioMode((value) => !value); setScenarioDate(''); setScenarioResult(null); }}>
+                                {scenarioMode ? 'Закрыть сценарий' : 'Что если?'}
+                            </button>
+                            {scenarioMode && <form className="ScenarioEditor" onSubmit={runScenario}>
+                                <p className="ScenarioHint">Нажмите на будущую дату прогноза. Выбрано: <strong>{scenarioDate || '—'}</strong></p>
+                                <div className="ScenarioRow">
+                                    <input type="date" value={scenarioDate} onChange={(event) => setScenarioDate(event.target.value)} />
+                                    <input value={scenarioAmount} onChange={(event) => setScenarioAmount(event.target.value)} placeholder="Сумма, ₽" inputMode="decimal" />
+                                    <button className="Button" type="button" onClick={() => setScenarioIncome((value) => !value)}>{scenarioIncome ? '↑ Приход' : '↓ Расход'}</button>
+                                </div>
+                                <button className="Button upload-btn" type="submit" disabled={isLoading}>{isLoading ? 'Переобучение Prophet…' : 'Перестроить прогноз'}</button>
+                            </form>}
                     </div>
 
                     <div className="GridOps">
