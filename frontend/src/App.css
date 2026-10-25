@@ -118,21 +118,10 @@
 body {
   overflow-x: hidden;
   margin: 0;
-  font-family: "Arial Black", Impact, Haettenschweiler, sans-serif;
-  font-stretch: expanded;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
-  letter-spacing: 0.03em;
-}
-main > * {
-  animation: riseIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-.Button, .RegistrationModal, .UploadZone, .ResultsGrid > *, .BurgerMenu-dropdown {
-  animation: riseIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-@keyframes riseIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: none; }
+  letter-spacing: 0;
 }
 
 
@@ -148,7 +137,7 @@ a {
 /* ============ HEADER ============ */
 .Header {
   position: fixed; top: 0; left: 0; width: 100%; height: 70px;
-  background: var(--surface-header); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  background: var(--surface-header);
   border-bottom: 1px solid var(--border-soft); color: var(--text); z-index: 50;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 clamp(20px, 5vw, 200px); gap: 10px; box-sizing: border-box;
@@ -168,7 +157,7 @@ a {
   border-radius: 50%; border: none; padding: 0; background: transparent;
   cursor: pointer; overflow: hidden; flex-shrink: 0;
 }
-.profileButton:hover { transform: scale(1.05); box-shadow: 0 0 10px var(--shadow-hover); }
+.profileButton:hover { box-shadow: 0 0 0 2px var(--accent); }
 .imageProfile { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 /* ============ MAIN ============ */
@@ -182,25 +171,14 @@ main {
 .Footer {
   color: var(--text); position: fixed; bottom: 0; left: 0; width: 100%;
   padding: 8px clamp(10px, 3vw, 30px); text-align: center;
-  background: var(--surface-header); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  background: var(--surface-header);
   border-top: 1px solid var(--border-soft); z-index: 1; font-size: clamp(11px, 1vw, 14px);
 }
 
 /* ============ ФОН-ВИДЕО ============ */
-.FonVideo {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  object-fit: cover; z-index: -2; pointer-events: none; user-select: none;
-  filter: brightness(28%) saturate(0.7) hue-rotate(140deg);
-  opacity: 0.85; transition: none;
-}
-[data-theme="light"] .FonVideo {
-  filter: brightness(95%) saturate(0.25) hue-rotate(20deg) invert(0.88);
-  opacity: 0.12;
-}
-
 /* ============ КНОПКИ ============ */
 .Button {
-  appearance: none; border: 0; border-radius: 100px;
+  appearance: none; border: 1px solid var(--border); border-radius: 8px;
   background: var(--surface-button); color: var(--text);
   padding: 0 18px;
   height: 44px;
@@ -214,8 +192,8 @@ main {
   box-sizing: border-box;
   cursor: pointer; white-space: nowrap;
 }
-.Button:hover { background: var(--surface-button-hover); transform: scale(1.05); box-shadow: 0 0 10px var(--shadow-hover); }
-.Button:active { transform: scale(0.97); }
+.Button:hover { background: var(--surface-button-hover); border-color: var(--accent); }
+.Button:active { background: var(--surface-button); }
 .Button:disabled { opacity: 0.5; pointer-events: none; cursor: not-allowed; }
 .Button { position: relative; overflow: hidden; transition: background 0.35s ease, color 0.35s ease; }
 .Button::before,
@@ -534,7 +512,7 @@ main {
 .ProfileSheet-issue,
 .ProfileCard-kicker,
 .ProfileCard-label-small {
-  font-family: "Arial Black", "Arial Narrow", Impact, Haettenschweiler, sans-serif;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   font-stretch: expanded;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -663,7 +641,7 @@ main {
   min-height: 36px;
 }
 .ProfileCard-kicker {
-  font-family: "Arial Black", Impact, Haettenschweiler, sans-serif;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   font-size: 12px;
   letter-spacing: 0.18em;
   text-transform: lowercase;
@@ -683,7 +661,7 @@ main {
 }
 .ProfileCard-label-small,
 .Kicker {
-  font-family: "Arial Black", Impact, Haettenschweiler, sans-serif;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   font-size: 11px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -699,7 +677,7 @@ main {
   word-break: break-word;
 }
 .ProfileCard-mono {
-  font-family: "Arial Black", Impact, Haettenschweiler, sans-serif;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   letter-spacing: 0.04em;
 }
 .ProfileCard--skeleton {
@@ -739,7 +717,7 @@ main {
 .GapList {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 8px;
   padding: clamp(16px, 2.4vw, 24px);
 }
 .SettingsCard { margin-bottom: 24px; text-align: left; }
@@ -868,7 +846,7 @@ main {
   gap: 8px;
 }
 .NotFoundPage-code {
-  font-family: "Arial Black", Impact, Haettenschweiler, sans-serif;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   letter-spacing: 0.28em;
   color: var(--text-faint);
   font-size: 13px;
@@ -892,7 +870,7 @@ main {
 .ProfileCard-rows dt,
 .ProfileCard-rows dd { margin: 0; }
 .ProfileCard-rows dt {
-  font-family: "Arial Black", Impact, Haettenschweiler, sans-serif;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   font-size: 12px;
   letter-spacing: 0.08em;
   color: var(--text-muted);
@@ -1353,14 +1331,12 @@ main {
 
 /* ============ ОСТАЛЬНЫЕ СТИЛИ ============ */
 .UploadZone {
-  border: 2px dashed var(--border-strong);
-  border-radius: 24px;
-  padding: 80px 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 64px 20px;
   text-align: center;
   background: var(--surface);
   width: 100%;
-  backdrop-filter: blur(12px);
-  transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1370,31 +1346,20 @@ main {
 
 .UploadZone:hover {
   border-color: var(--accent);
-  background: var(--surface-strong);
-  box-shadow: 0 0 30px var(--shadow-accent);
-}
-
-.UploadIcon {
-  font-size: 50px;
-  margin-bottom: 10px;
-  filter: drop-shadow(0 0 10px var(--shadow-accent));
 }
 
 .upload-btn {
   background: var(--accent);
   color: #06120e;
-  font-weight: bold;
-  padding: 14px 32px;
-  font-size: 16px;
-  border-radius: 100px;
+  font-weight: 650;
+  padding: 0 18px;
+  font-size: 15px;
+  border-radius: 8px;
   margin: 0;
-  box-shadow: 0 0 20px var(--shadow-accent);
 }
 
 .upload-btn:hover {
   background: var(--accent-2);
-  box-shadow: 0 0 30px var(--shadow-accent-strong);
-  transform: scale(1.05) translateY(-2px);
 }
 
 .LoadingZone {

@@ -144,7 +144,7 @@ services:
     container_name: review-forecast
     restart: unless-stopped
     environment:
-      N_TRIALS: ${PROPHET_TRIALS:-8}
+      N_TRIALS: ${PROPHET_TRIALS:-20}
       TOP_K: ${PROPHET_TOP_K:-2}
     volumes:
       - prophet-data:/app/artifacts

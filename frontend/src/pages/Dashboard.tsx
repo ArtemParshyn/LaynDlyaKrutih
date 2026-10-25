@@ -58,10 +58,36 @@ const Dashboard = () => {
         return `шанс небольшой, ${percent}%`;
     };
 
+    const remember = (next: ForecastResponse): ForecastResponse => ({
+        ...next,
+        days: next.days || [],
+        alerts: next.alerts || [],
+        operations: next.operations || [],
+        history: next.history || [],
+        rare_payments: next.rare_payments || [],
+    });
+
     const showForecast = (next: ForecastResponse) => {
-        setForecast(next);
+        setForecast(remember(next));
         setShowBounds(false);
         setIsLoading(false);
+    };
+
+    // Training finishes in a few seconds. Keep asking until the new line is ready.
+    const pullForecast = async () => {
+        const deadline = Date.now() + 25000;
+        let next = await processForecast();
+        while (Date.now() < deadline) {
+            const status = next.training?.status;
+            const ready = (next.days?.length || 0) > 0 && status !== 'queued' && status !== 'running';
+            if (status === 'failed' || ready) break;
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            next = await processForecast();
+        }
+        const ready = (next.days?.length || 0) > 0 && next.training?.status !== 'failed';
+        setForecast(remember(next));
+        setShowBounds(ready);
+        return next;
     };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, append = false) => {
@@ -71,12 +97,22 @@ const Dashboard = () => {
         setIsLoading(true);
         try {
             const saved = await uploadStatement(file, append);
-            showForecast(saved);
             if (saved.training?.status === 'failed') {
+                showForecast(saved);
                 toast.error(saved.training.error || 'Модель не удалось поставить на обучение');
-            } else {
-                toast.success('Выписка загружена, модель учится');
+                return;
             }
+            const next = await pullForecast();
+            setIsLoading(false);
+            if (next.training?.status === 'failed') {
+                toast.error(next.training.error || 'Обучение не удалось');
+                return;
+            }
+            if (!(next.days?.length || 0)) {
+                toast.message('Модель ещё учится. Нажмите «Обработать» ещё раз.');
+                return;
+            }
+            toast.success('Выписка загружена, прогноз обновлён');
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Ошибка загрузки выписки');
             setIsLoading(false);
@@ -86,24 +122,14 @@ const Dashboard = () => {
     const handleProcess = async () => {
         setIsLoading(true);
         try {
-            const next = await processForecast();
-            const ready = (next.days?.length || 0) > 0 && next.training?.status !== 'failed';
-            setForecast({
-                ...next,
-                days: next.days || [],
-                alerts: next.alerts || [],
-                operations: next.operations || [],
-                history: next.history || [],
-                rare_payments: next.rare_payments || [],
-            });
-            setShowBounds(ready);
+            const next = await pullForecast();
             setIsLoading(false);
             if (next.training?.status === 'failed') {
                 toast.error(next.training.error || 'Обучение не удалось');
                 return;
             }
-            if (!ready) {
-                toast.message('Модель ещё учится. Нажмите «Обработать» через минуту.');
+            if (!(next.days?.length || 0)) {
+                toast.message('Модель ещё учится. Нажмите «Обработать» ещё раз.');
                 return;
             }
             toast.success('Прогноз на 30 дней готов');
@@ -147,28 +173,24 @@ const Dashboard = () => {
         }
         setIsLoading(true);
         try {
-            const next = await addOperation({
+            await addOperation({
                 date: operationDate,
                 amount: Math.round(rublesAmount * 100),
                 is_income: operationIncome,
                 description: operationNote.trim(),
                 recurring: operationIsPlan && operationRecurring,
             });
-            setForecast({
-                ...next,
-                days: next.days || [],
-                alerts: next.alerts || [],
-                operations: next.operations || [],
-                history: next.history || [],
-                rare_payments: next.rare_payments || [],
-            });
-            setShowBounds(true);
+            const next = await pullForecast();
             setOperationOpen(false);
             setOperationAmount('');
             setOperationNote('');
             setOperationRecurring(false);
             setIsLoading(false);
-            toast.success(operationIsPlan ? 'Платёж учтён в прогнозе' : 'Операция учтена в остатке');
+            if (next.training?.status === 'failed') {
+                toast.error(next.training.error || 'Операция сохранена, но модель не переобучилась');
+                return;
+            }
+            toast.success(operationIsPlan ? 'Платёж учтён, прогноз пересчитан' : 'Операция учтена, прогноз пересчитан');
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Не удалось сохранить операцию');
             setIsLoading(false);
@@ -181,8 +203,8 @@ const Dashboard = () => {
             {/* ШАПКА (Приветствие слева, кнопка/статус справа) */}
             <div className="DashboardHeader">
                 <div>
-                    <h1>Финансовый пульс</h1>
-                    <p>Здравствуйте, {user?.company_name || user?.name || 'Гость'}. Ваш прогноз готов.</p>
+                    <h1>Остаток</h1>
+                    <p>{user?.company_name || user?.name || 'Гость'}. Прогноз на 30 дней.</p>
                 </div>
                 {!!forecast?.days?.length && (
                     <div className="UploadActions">
@@ -203,15 +225,14 @@ const Dashboard = () => {
                     <div className="skeleton skeleton-chart" />
                     <div className="skeleton skeleton-text" />
                     <div className="skeleton skeleton-text" />
-                    <button className="Button" onClick={openModal}>Войти, чтобы увидеть пульс</button>
+                    <button className="Button" onClick={openModal}>Войти</button>
                 </div>
             )}
 
             {/* ЗОНА ЗАГРУЗКИ */}
             {user && !forecast?.history?.length && !forecast?.days?.length && !isLoading && (
                 <div className="UploadZone">
-                    <div className="UploadIcon">📊</div>
-                    <h2>Загрузите выписку для анализа</h2>
+                    <h2>Загрузите выписку</h2>
                     <p>Поддерживаются форматы CSV (выгрузки из банка или 1С)</p>
 
                     <div className="UploadActions">
@@ -231,8 +252,8 @@ const Dashboard = () => {
             {isLoading && (
                 <div className="LoadingZone">
                     <div className="spinner"></div>
-                    <h2>ИИ анализирует транзакции...</h2>
-                    <p>Пожалуйста, подождите</p>
+                    <h2>Считаем прогноз</h2>
+                    <p>Обычно это занимает несколько секунд</p>
                 </div>
             )}
 
@@ -363,11 +384,9 @@ const Dashboard = () => {
                                 ))}
                             </div>
                         )}
-                        {!showBounds && (
-                            <button className="Button" onClick={handleProcess}>
-                                Обработать
-                            </button>
-                        )}
+                        <button className="Button" type="button" onClick={handleProcess}>
+                            Обработать
+                        </button>
                     </div>
 
                     <div className="GridOps">

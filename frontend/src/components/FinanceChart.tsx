@@ -59,7 +59,9 @@ const FinanceChart = ({ history, forecast, showBounds = false }: FinanceChartPro
         };
     });
 
-    if (showBounds && last && safeForecast.length) {
+    // Forecast stays on mid/low/high. Putting it on balance draws the fact
+    // series over the expected line, so a wavy Prophet forecast looks flat.
+    if (showBounds && safeForecast.length) {
         safeForecast.forEach((point) => points.push({
             date: point.date,
             low: point.low,
@@ -206,13 +208,13 @@ const FinanceChart = ({ history, forecast, showBounds = false }: FinanceChartPro
                         />
                     )}
                     {showBounds && (
-                        <Area type="monotone" dataKey="low" name="low" stroke="#fb7185" strokeDasharray="2 6" strokeWidth={2} fill="transparent" connectNulls={false} activeDot={{ r: 4 }} />
+                        <Area type="monotone" dataKey="low" name="low" stroke="#8f3b49" strokeDasharray="2 6" strokeWidth={1.5} fill="transparent" connectNulls={false} activeDot={{ r: 3 }} />
                     )}
                     {showBounds && (
-                        <Area type="monotone" dataKey="high" name="high" stroke="#38bdf8" strokeWidth={3} fill="transparent" connectNulls={false} activeDot={{ r: 4 }} />
+                        <Area type="monotone" dataKey="high" name="high" stroke="#7f9aa8" strokeWidth={1.5} fill="transparent" connectNulls={false} activeDot={{ r: 3 }} />
                     )}
                     {showBounds && (
-                        <Area type="monotone" dataKey="mid" name="mid" stroke="#fbbf24" strokeWidth={3} fill="transparent" connectNulls={false} activeDot={{ r: 4 }} />
+                        <Area type="monotone" dataKey="mid" name="mid" stroke="#d7c07a" strokeWidth={2} fill="transparent" connectNulls={false} activeDot={{ r: 3 }} />
                     )}
                     <Area type="monotone" dataKey="balance" name="balance" stroke="var(--accent)" strokeWidth={3} fill="url(#colorBalance)" connectNulls={false} activeDot={{ r: 5 }} />
                     {bandFrom && bandTo && bandFrom !== bandTo && (
