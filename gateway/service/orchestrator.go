@@ -300,6 +300,18 @@ func (s *OrchestratorService) enrichWithAnalytics(ctx context.Context, userID ui
 	if calendar, err := s.prophet.Analytics(ctx, id, "calendar", "days=30"); err == nil { response.PaymentCalendar = calendar }
 }
 
+// ML returns cash_gap even when risk=false. Old responses may have persisted
+// this empty object as an alert, so filter it on every read.
+func meaningfulAlerts(alerts []dto.Alert) []dto.Alert {
+	result := make([]dto.Alert, 0, len(alerts))
+	for _, alert := range alerts {
+		if alert.Date != "" && alert.Shortfall > 0 && alert.Chance > 0 {
+			result = append(result, alert)
+		}
+	}
+	return result
+}
+
 // GetForecast reads the already calculated days and alerts from Ledger without recalculating
 func (s *OrchestratorService) GetForecast(ctx context.Context, userID uint) (*dto.ForecastResponse, error) {
 	resp, err := s.ledger.GetForecast(ctx, userID)
@@ -309,6 +321,7 @@ func (s *OrchestratorService) GetForecast(ctx context.Context, userID uint) (*dt
 	if resp.RecurringPayments == nil {
 		resp.RecurringPayments = []dto.ScheduledPayment{}
 	}
+	resp.Alerts = meaningfulAlerts(resp.Alerts)
 	// Analytics is stored by ML outside Ledger, so refresh it on reads instead
 	// of losing it when the forecast is loaded from the ledger database.
 	s.enrichWithAnalytics(ctx, userID, resp)
@@ -480,7 +493,7 @@ func mapProphet(raw *client.ProphetForecast) *dto.ForecastResponse {
 		})
 	}
 	alerts := []dto.Alert{}
-	if raw.CashGap != nil {
+	if raw.CashGap != nil && raw.CashGap.Risk && raw.CashGap.Date != "" && raw.CashGap.Shortage > 0 {
 		alerts = append(alerts, dto.Alert{
 			Date:      raw.CashGap.Date,
 			Shortfall: rublesToKopecks(raw.CashGap.Shortage),

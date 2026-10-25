@@ -465,6 +465,14 @@ const Dashboard = () => {
                                 {forecast.payment_calendar.payments.slice(0, 5).map((payment) => <div className="GapCard-note" key={`${payment.date}-${payment.category}`}>{payment.date} · {payment.category} · {payment.amount.toLocaleString('ru-RU')} ₽</div>)}
                             </div></div>
                         </div> : null}
+                        {forecast.recurring_streams?.length ? <div className="MLInsights">
+                            <div className="GapCard MLInsightCard"><div>
+                                <div className="GapCard-date">Выявленные регулярные выплаты</div>
+                                {forecast.recurring_streams.slice(0, 5).map((stream) => <div className="GapCard-note" key={stream.stream_id}>
+                                    {stream.category}{stream.subcategory ? ` · ${stream.subcategory}` : ''} · каждые {stream.period_days} дн. · {stream.amount_median.toLocaleString('ru-RU')} ₽{stream.next_date ? ` · следующая ${stream.next_date}` : ''}
+                                </div>)}
+                            </div></div>
+                        </div> : null}
 
                         <FinanceChart
                             showBounds={chartShowBounds}
