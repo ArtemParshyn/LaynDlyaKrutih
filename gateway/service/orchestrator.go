@@ -224,6 +224,10 @@ func (s *OrchestratorService) CalculateScenario(ctx context.Context, userID uint
 		lastBalance = base.History[len(base.History)-1].Balance
 	}
 	lastDate := actualEnd
+	// Deltas are applied to the visible bridge between the original forecast
+	// and the first day of the retrained model. Without this bridge the chart
+	// appears to lose all dates up to a future custom operation.
+	interventionDeltas := make(map[string]int64)
 	addForecastUntil := func(until string) {
 		for _, day := range base.Days {
 			if day.Date <= lastDate || day.Date > until || !forecastDates[day.Date] {
@@ -258,6 +262,7 @@ func (s *OrchestratorService) CalculateScenario(ctx context.Context, userID uint
 		}
 		if change.Date > actualEnd {
 			addForecastUntil(change.Date)
+			interventionDeltas[change.Date] += amount
 		}
 		temporary = append(temporary, dto.Operation{Date: change.Date, Amount: amount, IsIncome: change.IsIncome, Description: change.Description, Category: "Сценарий"})
 	}
@@ -267,6 +272,7 @@ func (s *OrchestratorService) CalculateScenario(ctx context.Context, userID uint
 		if !event.IsIncome { amount = -amount }
 		if event.Date > actualEnd {
 			addForecastUntil(event.Date)
+			interventionDeltas[event.Date] += amount
 		}
 		temporary = append(temporary, dto.Operation{Date: event.Date, Amount: amount, IsIncome: event.IsIncome, Description: "Сценарное событие", Category: event.Category})
 	}
@@ -286,6 +292,27 @@ func (s *OrchestratorService) CalculateScenario(ctx context.Context, userID uint
 	raw, err := s.prophet.Forecast(ctx, scenarioID)
 	if err != nil { return nil, fmt.Errorf("scenario forecast failed: %w", err) }
 	result := mapProphet(raw)
+	// Prophet begins its response on the day after the last temporary history
+	// point. Keep the old forecast through that point, applying the custom
+	// movement on its date, then append the retrained forecast.
+	if len(result.Days) > 0 {
+		firstRetrainedDate := result.Days[0].Date
+		bridge := make([]dto.ForecastDay, 0, len(base.Days))
+		var cumulativeDelta int64
+		for _, day := range base.Days {
+			if day.Date >= firstRetrainedDate {
+				break
+			}
+			cumulativeDelta += interventionDeltas[day.Date]
+			bridge = append(bridge, dto.ForecastDay{
+				Date:            day.Date,
+				ExpectedBalance: day.ExpectedBalance + cumulativeDelta,
+				BalanceLow:      day.BalanceLow + cumulativeDelta,
+				BalanceHigh:     day.BalanceHigh + cumulativeDelta,
+			})
+		}
+		result.Days = append(bridge, result.Days...)
+	}
 	result.History = base.History
 	result.Operations = base.Operations
 	result.RecurringPayments = base.RecurringPayments
