@@ -100,8 +100,9 @@ const Pulses = () => {
         <div className="PulseBoard">
             <div className="DashboardHeader">
                 <div>
+                    <div className="PageEyebrow">Личный кабинет</div>
                     <h1>Пульсы</h1>
-                    <p>{user?.company_name || user?.name || 'Кабинет'}. Одна строка — один график.</p>
+                    <p>{user?.company_name || user?.name || 'Кабинет'}. Все денежные потоки — в одном спокойном обзоре.</p>
                 </div>
                 <button className="Button upload-btn" type="button" onClick={handleCreate} disabled={saving}>
                     {saving ? 'Создаём' : 'Новый пульс'}

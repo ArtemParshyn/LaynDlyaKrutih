@@ -58,8 +58,12 @@ const BurgerMenu = () => {
 const Header = () => {
   return (
     <header className="Header">
-      <Link to="/" className="Button">
-        Пульсы
+      <Link to="/" className="Brand">
+        <span className="Brand-mark" aria-hidden="true">Ц</span>
+        <span className="Brand-copy">
+          <strong>Центр-инвест</strong>
+          <small>Финансовая аналитика</small>
+        </span>
       </Link>
       <div className="Header-desktop-only">
         <ProfileButtonHeader />
