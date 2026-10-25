@@ -29,6 +29,9 @@ func (h *ForecastHandler) actor(c *gin.Context) (uint, bool) {
 		return 0, false
 	}
 	raw := c.Param("pulseID")
+	if raw == "" {
+		raw = c.Query("pulse_id")
+	}
 	if raw == "" || h.pulses == nil {
 		return owner, true
 	}

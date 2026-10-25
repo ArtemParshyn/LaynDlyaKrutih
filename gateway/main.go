@@ -57,6 +57,7 @@ func main() {
 	orchestratorService := service.NewOrchestratorService(ledgerClient, planningClient, forecastClient, prophetClient)
 	forecastHandler := handlers.NewForecastHandler(orchestratorService, pulseRepo)
 	pulseHandler := handlers.NewPulseHandler(pulseRepo, orchestratorService)
+	oneCHandler := handlers.NewOneCHandler(forecastHandler, pulseRepo)
 
 	router := gin.Default()
 
@@ -84,6 +85,10 @@ func main() {
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
+	oneC := router.Group("/integration/1c")
+	oneC.Use(handlers.OneCTokenMiddleware())
+	oneC.POST("/statements", oneCHandler.UploadStatement)
+	oneC.GET("/health", handlers.OneCHealth)
 
 	// Public Auth routes
 	router.POST("/register", authHandler.Register)
