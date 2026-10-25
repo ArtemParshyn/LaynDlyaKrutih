@@ -1171,10 +1171,11 @@ main {
 }
 
 .GridOps {
-  grid-column: 1 / -1;
-  grid-row: 3 / 4;
+  grid-column: 2 / 3;
+  grid-row: 2 / 3;
   width: 100%;
 }
+.GridAdd { align-self: start; }
 .OperationList { width: 100%; }
 .OperationCard {
   display: grid;
@@ -1190,6 +1191,7 @@ main {
 .OperationCard .GapCard-note { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .OperationCard .GapCard-sum { min-width: 0; text-align: right; }
 @media (max-width: 640px) {
+  .GridAdd, .GridOps { grid-column: 1 / -1; }
   .OperationCard { grid-template-columns: 1fr auto; gap: 8px 14px; }
   .OperationCard-main { grid-column: 1 / -1; }
   .OperationCard .GapCard-note { white-space: normal; }

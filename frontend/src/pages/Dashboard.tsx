@@ -6,7 +6,6 @@ import FinanceChart from '../components/FinanceChart';
 import { toast } from 'sonner';
 import { addOperation, getForecast, processForecast, uploadStatement, ForecastAlert, ForecastResponse, ScheduledPayment, StatementOperation, rubles } from '../api/forecast';
 import { getPulse, renamePulse } from '../api/pulses';
-import PlasticCard from '../components/BusinessCard/BuisnessCard';
 
 const Dashboard = () => {
     const { pulseId = '' } = useParams();
@@ -373,22 +372,6 @@ const Dashboard = () => {
                             </p>
                             <button className="Button" type="submit">Сохранить и пересчитать</button>
                         </form>
-                    </div>
-
-                    <div className="GridCard">
-                        <PlasticCard
-                            companyName={user?.company_name || user?.name || 'Моя компания'}
-                            ostatok={rubles(
-                                (showBounds ? forecast.days[forecast.days.length - 1]?.expected_balance : undefined)
-                                ?? forecast.history?.[forecast.history.length - 1]?.balance
-                                ?? 0
-                            )}
-                            cardStatus={
-                                nearestGap(forecast.alerts)
-                                    ? `Разрыв ${chancePercent(nearestGap(forecast.alerts)?.chance || 0)}%`
-                                    : 'Стабилен'
-                            }
-                        />
                     </div>
 
                     {/* График (На всю ширину, или по центру) */}
