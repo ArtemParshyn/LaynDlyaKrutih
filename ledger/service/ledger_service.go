@@ -449,11 +449,15 @@ func (s *LedgerService) balanceHistory(userID uint64) []dto.BalancePoint {
 	type movement struct {
 		date   time.Time
 		amount int64
+		balanceEOD *int64
 	}
 	rows := make([]movement, 0, len(ops)+len(manuals))
 	asOf := ops[len(ops)-1].Date
 	for _, op := range ops {
-		rows = append(rows, movement{date: op.Date, amount: op.Amount})
+		// A bank statement may carry the actual balance at end of day. Keep
+		// that anchor: summing all movements from zero produces a fake balance
+		// and makes the historical graph diverge from the source CSV.
+		rows = append(rows, movement{date: op.Date, amount: op.Amount, balanceEOD: op.BalanceEOD})
 		if op.Date.After(asOf) {
 			asOf = op.Date
 		}
@@ -473,6 +477,9 @@ func (s *LedgerService) balanceHistory(userID uint64) []dto.BalancePoint {
 	var current string
 	for _, op := range rows {
 		balance += op.amount
+		if op.balanceEOD != nil {
+			balance = *op.balanceEOD
+		}
 		day := op.date.Format("2006-01-02")
 		if day != current {
 			byDate = append(byDate, dto.BalancePoint{Date: day, Balance: balance})
