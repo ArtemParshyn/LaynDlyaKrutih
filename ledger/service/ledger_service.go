@@ -553,6 +553,7 @@ func (s *LedgerService) recentOperations(userID uint64, limit int) []dto.Operati
 	}
 	for _, op := range manuals {
 		out = append(out, dto.OperationDTO{
+			ID:          op.ID,
 			Date:        op.Date.Format("2006-01-02"),
 			Amount:      op.Amount,
 			Category:    op.Category,

@@ -341,7 +341,12 @@ func (s *OrchestratorService) GetForecast(ctx context.Context, userID uint) (*dt
 	if resp.RecurringPayments == nil {
 		resp.RecurringPayments = []dto.ScheduledPayment{}
 	}
-	resp.Operations = s.recentOperations(ctx, userID)
+	// The scenario editor needs the complete statement, not only the ten rows
+	// shown in the dashboard's "recent operations" list.
+	resp.Operations, err = s.ledger.Operations(ctx, userID)
+	if err != nil {
+		resp.Operations = []dto.Operation{}
+	}
 	resp.History = s.balanceHistory(ctx, userID)
 
 	ledgerData, err := s.ledger.GetData(ctx, userID)
