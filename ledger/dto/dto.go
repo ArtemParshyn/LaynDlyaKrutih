@@ -53,6 +53,7 @@ type OperationDTO struct {
 	Description string `json:"description"`
 	IsIncome    bool   `json:"is_income"`
 	Manual      bool   `json:"manual,omitempty"`
+	BalanceEOD  *int64 `json:"balance_eod,omitempty"`
 }
 
 type ManualOperationRequest struct {

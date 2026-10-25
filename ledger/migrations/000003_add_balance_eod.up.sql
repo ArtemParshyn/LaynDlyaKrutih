@@ -1,0 +1,1 @@
+ALTER TABLE operations ADD COLUMN IF NOT EXISTS balance_eod BIGINT;

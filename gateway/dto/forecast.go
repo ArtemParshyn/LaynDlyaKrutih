@@ -55,6 +55,7 @@ type Operation struct {
 	Description string `json:"description"`
 	IsIncome    bool   `json:"is_income"`
 	Manual      bool   `json:"manual,omitempty"`
+	BalanceEOD  *int64 `json:"balance_eod,omitempty"`
 }
 
 // ManualOperation is entered by the user, not parsed from a statement.

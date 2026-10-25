@@ -512,6 +512,7 @@ func (s *LedgerService) Operations(userID uint64) ([]dto.OperationDTO, error) {
 			Category:    op.Category,
 			Description: op.Description,
 			IsIncome:    op.Amount >= 0,
+			BalanceEOD:  op.BalanceEOD,
 		})
 	}
 	for _, op := range manuals {

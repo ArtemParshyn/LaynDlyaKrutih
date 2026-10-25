@@ -22,6 +22,7 @@ type ParsedRow struct {
 	Amount      int64 // kopecks
 	Category    string
 	Description string
+	BalanceEOD  *int64
 }
 
 // normalizeEncoding converts non-UTF8 encodings (like Windows-1251 or UTF-16) to valid UTF-8
@@ -66,6 +67,7 @@ func ParseCSV(rawData []byte, userID uint64) ([]model.Operation, error) {
 	var bestRecords [][]string
 	bestHeaderIdx := -1
 	dateCol, amountCol, typeCol, categoryCol, descCol := -1, -1, -1, -1, -1
+	balanceCol := -1
 	creditCol, debitCol := -1, -1
 
 	for _, delim := range delimiters {
@@ -83,6 +85,7 @@ func ParseCSV(rawData []byte, userID uint64) ([]model.Operation, error) {
 		for i, row := range records {
 			d, a, t, c, desc, credit, debit := detectColumns(row)
 			if d != -1 && (a != -1 || credit != -1 || debit != -1) {
+				for j, col := range row { clean := strings.ToLower(strings.TrimSpace(col)); if strings.Contains(clean, "balance") || strings.Contains(clean, "остат") { balanceCol = j } }
 				bestRecords = records
 				bestHeaderIdx = i
 				dateCol, amountCol, typeCol, categoryCol, descCol = d, a, t, c, desc
@@ -155,6 +158,10 @@ func ParseCSV(rawData []byte, userID uint64) ([]model.Operation, error) {
 				kopecks = -kopecks
 			}
 		}
+		var balanceEOD *int64
+		if balanceCol >= 0 && balanceCol < len(row) && strings.TrimSpace(row[balanceCol]) != "" {
+			if value, parseErr := parseAmount(row[balanceCol]); parseErr == nil { balanceEOD = &value }
+		}
 
 		category := ""
 		if categoryCol != -1 && categoryCol < len(row) {
@@ -178,6 +185,7 @@ func ParseCSV(rawData []byte, userID uint64) ([]model.Operation, error) {
 			Amount:      kopecks,
 			Category:    category,
 			Description: description,
+			BalanceEOD: balanceEOD,
 			Recurring:   false,
 		})
 	}

@@ -8,6 +8,7 @@ type Operation struct {
 	UserID      uint64    `gorm:"index;not null" json:"user_id"`
 	Date        time.Time `gorm:"type:date;index;not null" json:"date"`
 	Amount      int64     `gorm:"not null" json:"amount"` // in kopecks (signed: income +, expense -)
+	BalanceEOD  *int64    `gorm:"column:balance_eod" json:"balance_eod,omitempty"`
 	Category    string    `gorm:"type:varchar(255);not null" json:"category"`
 	Description string    `gorm:"type:text;not null" json:"description"`
 	Recurring   bool      `gorm:"default:false;not null" json:"recurring"`

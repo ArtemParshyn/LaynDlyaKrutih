@@ -511,6 +511,7 @@ func prophetCSV(ops []dto.Operation) []byte {
 	var balance int64
 	for i, op := range ops {
 		balance += op.Amount
+		if op.BalanceEOD != nil { balance = *op.BalanceEOD }
 		amount := op.Amount
 		if amount < 0 {
 			amount = -amount
