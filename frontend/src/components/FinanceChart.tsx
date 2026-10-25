@@ -208,7 +208,7 @@ const FinanceChart = ({ history, forecast, showBounds = false }: FinanceChartPro
                         />
                     )}
                     {showBounds && (
-                        <Area type="monotone" dataKey="low" name="low" stroke="#8f3b49" strokeDasharray="2 6" strokeWidth={1.5} fill="transparent" connectNulls={false} activeDot={{ r: 3 }} />
+                        <Area type="monotone" dataKey="low" name="low" stroke="#c5304b" strokeDasharray="4 4" strokeWidth={3.5} fill="transparent" connectNulls={false} activeDot={{ r: 4 }} />
                     )}
                     {showBounds && (
                         <Area type="monotone" dataKey="high" name="high" stroke="#7f9aa8" strokeWidth={1.5} fill="transparent" connectNulls={false} activeDot={{ r: 3 }} />
