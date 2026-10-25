@@ -412,22 +412,6 @@ const Dashboard = () => {
                                 high: rubles(day.balance_high),
                             }))}
                         />
-                        {showBounds && !!forecast.rare_payments?.length && (
-                            <div className="GapList" style={{ marginTop: '12px' }}>
-                                {forecast.rare_payments.map((payment) => (
-                                    <div key={`${payment.is_income}:${payment.amount}`} className="GapCard">
-                                        <div>
-                                            <div className="GapCard-date">
-                                                Редкий {payment.is_income ? 'приход' : 'платёж'} не входит в ежедневный расход
-                                            </div>
-                                            <div className="GapCard-note">
-                                                около {rubles(payment.amount).toLocaleString('ru-RU')} ₽, замечен {payment.seen} раза за последние три месяца
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
                     </div>
 
                     <div className="GridOps">
