@@ -9,5 +9,5 @@ type User struct {
 	Password    string    `gorm:"not null;type:varchar(255)" json:"-"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
-	OneCToken   string    `gorm:"type:varchar(128)" json:"-"`
+	OneCToken   string    `gorm:"column:onec_token;type:varchar(128)" json:"-"`
 }
