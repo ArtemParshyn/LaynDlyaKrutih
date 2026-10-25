@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Tooltip, ReferenceArea, ReferenceLine } from 'recharts';
 import '../App.css';
 
@@ -45,6 +45,7 @@ const FinanceChart = ({ history, forecast, showBounds = false, onDateClick }: Fi
     const [windowDays, setWindowDays] = useState(90);
     const [dragFrom, setDragFrom] = useState<string | null>(null);
     const [dragTo, setDragTo] = useState<string | null>(null);
+    const draggedRef = useRef(false);
     const safeHistory = (history || []).filter((point) => point?.date && Number.isFinite(point.balance));
     const safeForecast = (forecast || []).filter((point) => point?.date && Number.isFinite(point.balance));
     const last = safeHistory[safeHistory.length - 1];
@@ -146,13 +147,17 @@ const FinanceChart = ({ history, forecast, showBounds = false, onDateClick }: Fi
                     onMouseDown={(state) => {
                         const date = state?.activeLabel ? String(state.activeLabel) : null;
                         if (!date) return;
+                        draggedRef.current = false;
                         setDragFrom(date);
                         setDragTo(date);
                     }}
                     onMouseMove={(state) => {
                         if (!dragFrom) return;
                         const date = state?.activeLabel ? String(state.activeLabel) : null;
-                        if (date) setDragTo(date);
+                        if (date) {
+                            if (date !== dragFrom) draggedRef.current = true;
+                            setDragTo(date);
+                        }
                     }}
                     onMouseUp={() => {
                         setDragFrom(null);
@@ -166,7 +171,8 @@ const FinanceChart = ({ history, forecast, showBounds = false, onDateClick }: Fi
                     }}
                     onClick={(state) => {
                         const date = state?.activeLabel ? String(state.activeLabel) : null;
-                        if (date) onDateClick?.(date);
+                        if (date && !draggedRef.current) onDateClick?.(date);
+                        draggedRef.current = false;
                     }}
                 >
                     <defs>
