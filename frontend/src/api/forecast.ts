@@ -113,15 +113,20 @@ export const createEvent = (event: {
     body: JSON.stringify(event),
   });
 
-export const calculateScenario = (events: Array<{
+export const calculateScenario = (pulseId: string, events: Array<{
   date: string;
   amount: number;
   is_income: boolean;
   category: string;
-}>) =>
-  apiClient<ForecastResponse>(`${API_URL}/api/scenarios`, {
+}>, operations: Array<{
+  date: string;
+  amount: number;
+  is_income: boolean;
+  description?: string;
+}> = []) =>
+  apiClient<ForecastResponse>(`${API_URL}/api/pulses/${pulseId}/scenarios`, {
     method: 'POST',
-    body: JSON.stringify({ events }),
+    body: JSON.stringify({ events, operations }),
   });
 
 export const rubles = (kopecks: number) => Math.round(kopecks) / 100;

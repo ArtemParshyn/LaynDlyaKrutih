@@ -120,6 +120,7 @@ func main() {
 		protected.GET("/api/pulses/:pulseID/forecast", forecastHandler.GetForecast)
 		protected.POST("/api/pulses/:pulseID/forecast/process", forecastHandler.Process)
 		protected.POST("/api/pulses/:pulseID/operations", forecastHandler.AddOperation)
+		protected.POST("/api/pulses/:pulseID/scenarios", forecastHandler.CalculateScenario)
 
 		// Statements & Forecast orchestration
 		protected.POST("/api/statements", forecastHandler.UploadStatement)
