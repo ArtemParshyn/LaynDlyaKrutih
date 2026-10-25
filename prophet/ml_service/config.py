@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -12,8 +11,8 @@ MIN_HISTORY_DAYS = 60
 # Сколько последних дней отдаём под holdout при подборе гиперпараметров.
 HOLDOUT_DAYS = 30
 # Optuna: экран + сколько лучших конфигов гонять на rolling CV.
-N_TRIALS = int(os.getenv("N_TRIALS", "20"))
-TOP_K = int(os.getenv("TOP_K", "3"))
+N_TRIALS = 20
+TOP_K = 3
 RANDOM_SEED = 42
 
 # Сколько компаний обучаем одновременно: Prophet+Optuna упираются в CPU,

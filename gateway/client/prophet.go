@@ -46,9 +46,19 @@ type ProphetDay struct {
 }
 
 type ProphetGap struct {
-	Date        string  `json:"date"`
-	Shortage    float64 `json:"shortage"`
-	Probability float64 `json:"probability"`
+	Risk                 bool    `json:"risk"`
+	Reason               string  `json:"reason"`
+	Date                 string  `json:"date"`
+	Shortage             float64 `json:"shortage"`
+	ShortageStressed     float64 `json:"shortage_stressed"`
+	Probability          float64 `json:"probability"`
+	RequiredPayment      float64 `json:"required_payment"`
+	BalanceForecast      float64 `json:"balance_forecast"`
+	WorstDate            string  `json:"worst_date"`
+	MaxProbability       float64 `json:"max_probability"`
+	NegativeBalanceDays  int     `json:"negative_balance_days"`
+	PaymentShortfallDays int     `json:"payment_shortfall_days"`
+	HorizonDays          int     `json:"horizon_days"`
 }
 
 type ProphetForecast struct {

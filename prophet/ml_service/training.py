@@ -88,8 +88,8 @@ def tune(history: pd.DataFrame, n_trials: int, top_k: int) -> dict[str, Any]:
 
     def objective(trial: optuna.Trial) -> float:
         params = {
-            "cps": trial.suggest_float("cps", 0.001, 0.5, log=True),
-            "sps": trial.suggest_float("sps", 0.01, 50.0, log=True),
+            "cps": trial.suggest_float("cps", 0.001, 1.0, log=True),
+            "sps": trial.suggest_float("sps", 0.01, 60.0, log=True),
             "mode": trial.suggest_categorical("mode", ["additive", "multiplicative"]),
             "weekly": trial.suggest_categorical("weekly", [True, False]),
         }

@@ -485,7 +485,9 @@ func mapProphet(raw *client.ProphetForecast) *dto.ForecastResponse {
 			Date:      raw.CashGap.Date,
 			Shortfall: rublesToKopecks(raw.CashGap.Shortage),
 			Chance:    raw.CashGap.Probability,
-			Reason:    "Prophet: остаток может уйти ниже нуля",
+			Reason:    raw.CashGap.Reason,
+			RequiredPayment: rublesToKopecks(raw.CashGap.RequiredPayment),
+			ShortageStressed: rublesToKopecks(raw.CashGap.ShortageStressed),
 		})
 	}
 	return &dto.ForecastResponse{

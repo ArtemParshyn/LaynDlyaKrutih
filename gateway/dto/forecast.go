@@ -36,6 +36,8 @@ type Alert struct {
 	Shortfall int64   `json:"shortfall"`
 	Chance    float64 `json:"chance"`
 	Reason    string  `json:"reason"`
+	RequiredPayment int64 `json:"required_payment,omitempty"`
+	ShortageStressed int64 `json:"shortage_stressed,omitempty"`
 }
 
 // RarePayment is a large transfer seen more than once, but not often enough

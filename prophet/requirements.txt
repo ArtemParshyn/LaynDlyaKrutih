@@ -14,6 +14,7 @@ optuna==5.0.0
 pandas==3.1.0
 numpy==2.5.4
 holidays==0.107
+scipy==1.18.1
 
 # только для ml_service.smoke_test
 requests==2.34.2

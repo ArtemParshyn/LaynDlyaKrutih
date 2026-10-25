@@ -106,11 +106,16 @@ def check_forecast(session: requests.Session, company_id: str, horizon: int) -> 
     print(f"[ok] качество: {body['quality']}")
     print(f"[ok] вывод: {body['summary']}")
     gap = body["cash_gap"]
-    if gap is None:
-        print("[ok] кассового разрыва на горизонте не ожидается")
+    if not gap or not gap.get("risk"):
+        max_probability = gap.get("max_probability") if gap else None
+        print(
+            "[ok] кассового разрыва на горизонте не ожидается"
+            + (f" (макс. вероятность нехватки {max_probability:.0%})" if max_probability is not None else "")
+        )
     else:
         print(
-            f"[ok] кассовый разрыв {gap['date']}: нехватка {gap['shortage']:,.0f} руб., "
+            f"[ok] кассовый разрыв {gap['date']} ({gap['reason']}): "
+            f"нехватка {gap['shortage']:,.0f} руб. из платежа {gap['required_payment']:,.0f} руб., "
             f"вероятность {gap['probability']:.0%}"
         )
 
