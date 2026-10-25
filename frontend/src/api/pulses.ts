@@ -17,12 +17,17 @@ export const listPulses = () =>
 export const getPulse = (pulseId: string) =>
   apiClient<PulseCard>(`${API_URL}/api/pulses/${pulseId}`, { method: 'GET' });
 
-export const createPulse = (name: string, file: File) => {
-  const body = new FormData();
-  body.append('name', name);
-  body.append('file', file);
-  return apiClient<PulseCard>(`${API_URL}/api/pulses`, { method: 'POST', body });
-};
+export const createPulse = (name = 'Новый пульс') =>
+  apiClient<PulseCard>(`${API_URL}/api/pulses`, {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+
+export const renamePulse = (pulseId: string, name: string) =>
+  apiClient<PulseCard>(`${API_URL}/api/pulses/${pulseId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  });
 
 export const deletePulse = (pulseId: number) =>
   apiClient<void>(`${API_URL}/api/pulses/${pulseId}`, { method: 'DELETE' });

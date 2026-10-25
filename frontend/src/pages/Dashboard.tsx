@@ -5,7 +5,7 @@ import '../App.css';
 import FinanceChart from '../components/FinanceChart';
 import { toast } from 'sonner';
 import { addOperation, getForecast, processForecast, uploadStatement, ForecastAlert, ForecastResponse, ScheduledPayment, StatementOperation, rubles } from '../api/forecast';
-import { getPulse } from '../api/pulses';
+import { getPulse, renamePulse } from '../api/pulses';
 import PlasticCard from '../components/BusinessCard/BuisnessCard';
 
 const Dashboard = () => {
@@ -262,8 +262,24 @@ const Dashboard = () => {
             {/* ЗОНА ЗАГРУЗКИ */}
             {user && !forecast?.history?.length && !forecast?.days?.length && !isLoading && (
                 <div className="UploadZone">
+                    <label className="PulseName">
+                        Имя
+                        <input
+                            type="text"
+                            maxLength={80}
+                            value={pulseName}
+                            onChange={(event) => setPulseName(event.target.value)}
+                            onBlur={() => {
+                                const title = pulseName.trim();
+                                if (!title || !pulseId) return;
+                                renamePulse(pulseId, title).catch((err) => {
+                                    toast.error(err instanceof Error ? err.message : 'Не удалось сохранить имя');
+                                });
+                            }}
+                        />
+                    </label>
                     <h2>Загрузите выписку</h2>
-                    <p>Поддерживаются форматы CSV (выгрузки из банка или 1С)</p>
+                    <p>CSV из банка или 1С. Прогноз построится после загрузки.</p>
 
                     <div className="UploadActions">
                         <label className="Button upload-btn">

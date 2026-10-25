@@ -64,26 +64,39 @@ func (h *PulseHandler) Create(c *gin.Context) {
 	if !ok {
 		return
 	}
-	name := strings.TrimSpace(c.PostForm("name"))
+	name := "Новый пульс"
+	file, header, fileErr := c.Request.FormFile("file")
+	if fileErr == nil {
+		defer file.Close()
+		if posted := strings.TrimSpace(c.PostForm("name")); posted != "" {
+			name = posted
+		}
+	} else if c.ContentType() == "application/json" {
+		var body struct {
+			Name string `json:"name"`
+		}
+		if err := c.ShouldBindJSON(&body); err == nil && strings.TrimSpace(body.Name) != "" {
+			name = strings.TrimSpace(body.Name)
+		}
+	}
 	if name == "" || utf8.RuneCountInString(name) > 80 {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "Укажите имя пульса, до 80 символов"})
-		return
-	}
-	file, header, err := c.Request.FormFile("file")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "Нужен файл CSV"})
-		return
-	}
-	defer file.Close()
-	payload, err := io.ReadAll(file)
-	if err != nil || len(payload) == 0 {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "Не удалось прочитать CSV"})
 		return
 	}
 
 	pulse, err := h.repo.Create(userID, name)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, dto.ErrorResponse{Error: "Не удалось создать пульс"})
+		return
+	}
+	if fileErr != nil {
+		c.JSON(http.StatusCreated, pulseCard(*pulse, nil))
+		return
+	}
+	payload, err := io.ReadAll(file)
+	if err != nil || len(payload) == 0 {
+		_ = h.repo.Delete(userID, pulse.ID)
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "Не удалось прочитать CSV"})
 		return
 	}
 	view, err := h.orchestrator.UploadStatementAndRecalculate(c.Request.Context(), uint(pulse.LedgerKey), header.Filename, payload)
@@ -94,6 +107,31 @@ func (h *PulseHandler) Create(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, pulseCard(*pulse, view))
+}
+
+func (h *PulseHandler) Rename(c *gin.Context) {
+	pulse, ok := h.owned(c)
+	if !ok {
+		return
+	}
+	var body struct {
+		Name string `json:"name"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "Укажите имя пульса"})
+		return
+	}
+	name := strings.TrimSpace(body.Name)
+	if name == "" || utf8.RuneCountInString(name) > 80 {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "Укажите имя пульса, до 80 символов"})
+		return
+	}
+	if err := h.repo.Rename(pulse.UserID, pulse.ID, name); err != nil {
+		c.JSON(http.StatusBadGateway, dto.ErrorResponse{Error: "Не удалось переименовать пульс"})
+		return
+	}
+	pulse.Name = name
+	c.JSON(http.StatusOK, pulseCard(*pulse, nil))
 }
 
 func (h *PulseHandler) Delete(c *gin.Context) {

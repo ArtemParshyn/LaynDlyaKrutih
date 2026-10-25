@@ -107,6 +107,7 @@ func main() {
 		protected.GET("/api/pulses", pulseHandler.List)
 		protected.POST("/api/pulses", pulseHandler.Create)
 		protected.GET("/api/pulses/:pulseID", pulseHandler.Get)
+		protected.PATCH("/api/pulses/:pulseID", pulseHandler.Rename)
 		protected.DELETE("/api/pulses/:pulseID", pulseHandler.Delete)
 		protected.POST("/api/pulses/:pulseID/statements", forecastHandler.UploadStatement)
 		protected.GET("/api/pulses/:pulseID/forecast", forecastHandler.GetForecast)

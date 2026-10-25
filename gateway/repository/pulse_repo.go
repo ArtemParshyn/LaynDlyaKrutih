@@ -79,6 +79,17 @@ func (r *PulseRepository) Create(userID uint, name string) (*entity.Pulse, error
 	return pulse, nil
 }
 
+func (r *PulseRepository) Rename(userID, id uint, name string) error {
+	res := r.db.Model(&entity.Pulse{}).Where("id = ? AND user_id = ?", id, userID).Update("name", name)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return ErrPulseNotFound
+	}
+	return nil
+}
+
 func (r *PulseRepository) Delete(userID, id uint) error {
 	res := r.db.Where("id = ? AND user_id = ?", id, userID).Delete(&entity.Pulse{})
 	if res.Error != nil {

@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
@@ -41,8 +41,6 @@ const Pulses = () => {
     const navigate = useNavigate();
     const [pulses, setPulses] = useState<PulseCard[]>([]);
     const [ready, setReady] = useState(false);
-    const [name, setName] = useState('');
-    const [file, setFile] = useState<File | null>(null);
     const [saving, setSaving] = useState(false);
 
     const load = async () => {
@@ -62,19 +60,11 @@ const Pulses = () => {
         });
     }, [user]);
 
-    const handleCreate = async (event: FormEvent) => {
-        event.preventDefault();
-        const title = name.trim();
-        if (!title || !file) {
-            toast.error('Укажите имя и файл CSV');
-            return;
-        }
+    const handleCreate = async () => {
         setSaving(true);
         try {
-            const created = await createPulse(title, file);
-            setName('');
-            setFile(null);
-            navigate(`/pulses/${created.id}`, { state: { fresh: true } });
+            const created = await createPulse();
+            navigate(`/pulses/${created.id}`);
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Не удалось создать пульс');
             setSaving(false);
@@ -111,35 +101,12 @@ const Pulses = () => {
             <div className="DashboardHeader">
                 <div>
                     <h1>Пульсы</h1>
-                    <p>{user?.company_name || user?.name || 'Кабинет'}. Одна карточка — один график.</p>
+                    <p>{user?.company_name || user?.name || 'Кабинет'}. Одна строка — один график.</p>
                 </div>
-            </div>
-
-            <form className="PulseCreate" onSubmit={handleCreate}>
-                <label>
-                    Имя
-                    <input
-                        type="text"
-                        maxLength={80}
-                        value={name}
-                        onChange={(event) => setName(event.target.value)}
-                        placeholder="Магазин на Ленина"
-                        required
-                    />
-                </label>
-                <label className="PulseCreate-file">
-                    {file ? file.name : 'Выбрать CSV'}
-                    <input
-                        type="file"
-                        accept=".csv"
-                        onChange={(event) => setFile(event.target.files?.[0] || null)}
-                        required
-                    />
-                </label>
-                <button className="Button upload-btn" type="submit" disabled={saving}>
+                <button className="Button upload-btn" type="button" onClick={handleCreate} disabled={saving}>
                     {saving ? 'Создаём' : 'Новый пульс'}
                 </button>
-            </form>
+            </div>
 
             {!ready ? <p className="GapCard-note">Открываем кабинет.</p> : null}
             {ready && !pulses.length ? (
@@ -149,16 +116,20 @@ const Pulses = () => {
             <div className="PulseGrid">
                 {pulses.map((pulse) => (
                     <article key={pulse.id} className="PulseCard">
-                        <div className="PulseCard-top">
+                        <div>
                             <h2>{pulse.name}</h2>
-                            <button type="button" className="PulseCard-delete" onClick={() => handleDelete(pulse)}>
-                                Удалить
-                            </button>
+                            <div className="PulseCard-date">{day(pulse.as_of)}</div>
                         </div>
                         <Sparkline points={(pulse.history || []).map((point) => point.balance)} />
-                        <div className="PulseCard-balance">{pulse.as_of ? money(pulse.balance) : '—'}</div>
-                        <div className="PulseCard-date">на {day(pulse.as_of)}</div>
-                        <Link className="Button" to={`/pulses/${pulse.id}`}>Открыть</Link>
+                        <div className="PulseCard-side">
+                            <div className="PulseCard-balance">{pulse.as_of ? money(pulse.balance) : '—'}</div>
+                            <div className="PulseCard-actions">
+                                <Link className="Button" to={`/pulses/${pulse.id}`}>Открыть</Link>
+                                <button type="button" className="PulseCard-delete" onClick={() => handleDelete(pulse)}>
+                                    Удалить
+                                </button>
+                            </div>
+                        </div>
                     </article>
                 ))}
             </div>
