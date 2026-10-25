@@ -238,8 +238,11 @@ const Dashboard = () => {
                 </div>
                 {!!forecast?.days?.length && (
                     <div className="UploadActions">
+                        <button className="Button" type="button" onClick={handleProcess}>
+                            Обработать
+                        </button>
                         <label className="Button upload-btn">
-                            Добавить CSV
+                            Объединить CSV
                             <input type="file" accept=".csv" onChange={(event) => handleFileUpload(event, true)} hidden />
                         </label>
                         <button className="Button" onClick={handleReset}>
@@ -430,9 +433,6 @@ const Dashboard = () => {
                                 ))}
                             </div>
                         )}
-                        <button className="Button" type="button" onClick={handleProcess}>
-                            Обработать
-                        </button>
                     </div>
 
                     <div className="GridOps">
