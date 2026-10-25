@@ -239,7 +239,7 @@ const Dashboard = () => {
         }
     };
 
-    const chartForecast = scenarioResult || forecast;
+    const chartForecast = scenarioResult || forecast!;
     const chartShowBounds = showBounds || Boolean(scenarioResult);
 
     useEffect(() => {
@@ -442,7 +442,7 @@ const Dashboard = () => {
                                 date: point.date,
                                 balance: rubles(point.balance),
                             }))}
-                            forecast={chartForecast.days.map((day) => ({
+                            forecast={chartForecast!.days.map((day) => ({
                                 date: day.date,
                                 balance: rubles(day.expected_balance),
                                 low: rubles(day.balance_low),
