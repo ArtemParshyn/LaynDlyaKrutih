@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import '../App.css';
 import FinanceChart from '../components/FinanceChart';
 import { toast } from 'sonner';
-import { addOperation, getForecast, processForecast, uploadStatement, ForecastAlert, ForecastResponse, ScheduledPayment, StatementOperation, rubles } from '../api/forecast';
+import { addOperation, calculateScenario, getForecast, processForecast, uploadStatement, ForecastAlert, ForecastResponse, ScheduledPayment, StatementOperation, rubles } from '../api/forecast';
 import { getPulse, renamePulse } from '../api/pulses';
 
 const Dashboard = () => {
@@ -21,6 +21,10 @@ const Dashboard = () => {
     const [operationIncome, setOperationIncome] = useState(false);
     const [operationNote, setOperationNote] = useState('');
     const [operationRecurring, setOperationRecurring] = useState(false);
+    const [scenarioMode, setScenarioMode] = useState(false);
+    const [scenarioDate, setScenarioDate] = useState('');
+    const [scenarioResult, setScenarioResult] = useState<ForecastResponse | null>(null);
+    const [scenarioDraft, setScenarioDraft] = useState<Record<string, { amount: string; is_income: boolean }>>({});
 
     const recurringPayments = (data: ForecastResponse | null): ScheduledPayment[] =>
         data?.recurring_payments || [];
@@ -198,11 +202,51 @@ const Dashboard = () => {
     };
 
     const handleChartDateClick = (date: string) => {
+        if (scenarioMode) {
+            setScenarioDate(date);
+            return;
+        }
         setOperationDate(date);
         setOperationOpen(true);
         window.requestAnimationFrame(() => {
             document.querySelector('.GridAdd')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
+    };
+
+    const scenarioKey = (op: StatementOperation, index: number) => `${op.date}:${op.description}:${index}`;
+    const selectedScenarioOperations = (forecast?.operations || []).filter((op) => op.date === scenarioDate);
+    const scenarioChanges = (forecast?.operations || []).flatMap((op, index) => {
+        const draft = scenarioDraft[scenarioKey(op, index)];
+        if (!draft) return [];
+        const amount = Math.round(Number(draft.amount.replace(',', '.')) * 100);
+        if (!Number.isFinite(amount) || amount <= 0) return [];
+        return [
+            { date: op.date, amount: Math.abs(op.amount), is_income: !op.is_income, description: `Сценарий: отмена ${op.description}` },
+            { date: op.date, amount, is_income: draft.is_income, description: op.description },
+        ];
+    });
+    const runScenario = async () => {
+        try {
+            setIsLoading(true);
+            const result = await calculateScenario(pulseId, [], scenarioChanges);
+            setScenarioResult(result);
+            setIsLoading(false);
+            toast.success('Сценарий пересчитан');
+        } catch (err) {
+            setIsLoading(false);
+            toast.error(err instanceof Error ? err.message : 'Не удалось рассчитать сценарий');
+        }
+    };
+    const applyScenarioPreset = (type: 'revenue' | 'rent') => {
+        const next = { ...scenarioDraft };
+        (forecast?.operations || []).forEach((op, index) => {
+            const text = `${op.category} ${op.description}`.toLowerCase();
+            if ((type === 'revenue' && op.is_income) || (type === 'rent' && text.includes('аренд'))) {
+                const amount = Math.abs(op.amount) / 100;
+                next[scenarioKey(op, index)] = { amount: String(Math.round(amount * (type === 'revenue' ? 0.9 : 1.1))), is_income: op.is_income };
+            }
+        });
+        setScenarioDraft(next);
     };
 
     useEffect(() => {
@@ -398,6 +442,7 @@ const Dashboard = () => {
                         <FinanceChart
                             showBounds={showBounds}
                             onDateClick={handleChartDateClick}
+                            scenarioForecast={scenarioResult?.days?.map((day) => ({ date: day.date, balance: rubles(day.expected_balance) })) || []}
                             history={(forecast.history?.length
                                 ? forecast.history
                                 : [{ date: forecast.days[0].date, balance: forecast.days[0].expected_balance }]
@@ -412,6 +457,32 @@ const Dashboard = () => {
                                 high: rubles(day.balance_high),
                             }))}
                         />
+                        <div className="ScenarioTools">
+                            <button className={scenarioMode ? 'Button is-active' : 'Button'} type="button" onClick={() => { setScenarioMode((value) => !value); setScenarioDate(''); }}>
+                                {scenarioMode ? 'Закрыть «Что если»' : 'Что если?'}
+                            </button>
+                            {scenarioMode && <>
+                                <p className="ScenarioHint">Выберите день на графике, затем измените операции этого дня.</p>
+                                <div className="ScenarioPresets">
+                                    <button className="Button" type="button" onClick={() => applyScenarioPreset('revenue')}>Выручка −10%</button>
+                                    <button className="Button" type="button" onClick={() => applyScenarioPreset('rent')}>Аренда +10%</button>
+                                </div>
+                                {scenarioDate && <div className="ScenarioEditor">
+                                    <strong>Операции за {scenarioDate}</strong>
+                                    {!selectedScenarioOperations.length && <p className="ScenarioHint">Операций нет — добавьте изменение вручную ниже.</p>}
+                                    {selectedScenarioOperations.map((op, index) => {
+                                        const key = scenarioKey(op, (forecast?.operations || []).indexOf(op));
+                                        const draft = scenarioDraft[key] || { amount: String(Math.abs(op.amount) / 100), is_income: op.is_income };
+                                        return <div className="ScenarioRow" key={key}>
+                                            <span>{op.category || op.description || 'Операция'}</span>
+                                            <input value={draft.amount} onChange={(event) => setScenarioDraft((current) => ({ ...current, [key]: { ...draft, amount: event.target.value } }))} />
+                                            <button className="Button" type="button" onClick={() => setScenarioDraft((current) => ({ ...current, [key]: { ...draft, is_income: !draft.is_income } }))}>{draft.is_income ? '↑ Приход' : '↓ Расход'}</button>
+                                        </div>;
+                                    })}
+                                    <button className="Button upload-btn" type="button" onClick={runScenario}>Пересчитать сценарий</button>
+                                </div>}
+                            </>}
+                        </div>
                         {showBounds && !!forecast.rare_payments?.length && (
                             <div className="GapList" style={{ marginTop: '12px' }}>
                                 {forecast.rare_payments.map((payment) => (
