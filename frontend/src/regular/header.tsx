@@ -65,10 +65,6 @@ const Header = () => {
           <small>Финансовая аналитика</small>
         </span>
       </Link>
-      <div className="Header-desktop-only">
-        <ProfileButtonHeader />
-      </div>
-
       <div className="Header-right-group">
         <div className="Header-icon-stack">
           <ProfileButton />
