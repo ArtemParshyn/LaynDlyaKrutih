@@ -459,6 +459,7 @@ const Dashboard = () => {
                                 </div>
                                 <button className="Button upload-btn" type="submit" disabled={isLoading}>{isLoading ? 'Переобучение Prophet…' : 'Перестроить прогноз'}</button>
                             </form>}
+                        </div>
                     </div>
 
                     <div className="GridOps">
