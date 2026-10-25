@@ -273,39 +273,45 @@ func (s *OrchestratorService) CreateEventAndRecalculate(ctx context.Context, use
 
 // CalculateScenario computes an alternative "what if" second line without saving or overwriting the base forecast
 func (s *OrchestratorService) CalculateScenario(ctx context.Context, userID uint, whatIfEvents []dto.ScheduledPayment, changes []dto.ScenarioOperation) (*dto.ForecastResponse, error) {
+	ops, err := s.ledger.Operations(ctx, userID)
+	if err != nil { return nil, fmt.Errorf("failed to fetch operations: %w", err) }
 	base, err := s.GetForecast(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch base forecast: %w", err)
-	}
-	if base == nil || len(base.Days) == 0 {
-		return nil, fmt.Errorf("базовый прогноз ещё не готов")
-	}
-	// Apply temporary signed deltas to every day after the changed date. This
-	// keeps scenarios instant and avoids retraining Prophet or mutating Ledger.
+	if err != nil { return nil, fmt.Errorf("failed to fetch base forecast: %w", err) }
+	// The frontend sends a compensating movement followed by the edited one.
+	// Build a temporary statement only; Ledger and the user's model are untouched.
+	temporary := append([]dto.Operation(nil), ops...)
 	for _, change := range changes {
 		if change.Amount <= 0 { continue }
-		delta := change.Amount
-		if !change.IsIncome { delta = -delta }
-		for i := range base.Days {
-			if base.Days[i].Date < change.Date { continue }
-			base.Days[i].ExpectedBalance += delta
-			base.Days[i].BalanceLow += delta
-			base.Days[i].BalanceHigh += delta
-		}
+		amount := change.Amount
+		if !change.IsIncome { amount = -amount }
+		temporary = append(temporary, dto.Operation{Date: change.Date, Amount: amount, IsIncome: change.IsIncome, Description: change.Description, Category: "Сценарий"})
 	}
 	for _, event := range whatIfEvents {
 		if event.Amount <= 0 { continue }
-		delta := event.Amount
-		if !event.IsIncome { delta = -delta }
-		for i := range base.Days {
-			if base.Days[i].Date < event.Date { continue }
-			base.Days[i].ExpectedBalance += delta
-			base.Days[i].BalanceLow += delta
-			base.Days[i].BalanceHigh += delta
-		}
+		amount := event.Amount
+		if !event.IsIncome { amount = -amount }
+		temporary = append(temporary, dto.Operation{Date: event.Date, Amount: amount, IsIncome: event.IsIncome, Description: "Сценарное событие", Category: event.Category})
 	}
-	base.Summary = "Временный сценарий: базовый прогноз не изменён"
-	return base, nil
+	scenarioID := fmt.Sprintf("scenario-%d-%d", userID, time.Now().UnixNano())
+	train, err := s.prophet.Train(ctx, scenarioID, prophetCSV(temporary))
+	if err != nil { return nil, fmt.Errorf("scenario training failed: %w", err) }
+	defer s.prophet.Delete(context.Background(), scenarioID)
+	deadline := time.Now().Add(55 * time.Second)
+	for {
+		job, jobErr := s.prophet.Job(ctx, train.JobID)
+		if jobErr == nil && job.Status == "succeeded" { break }
+		if jobErr == nil && job.Status == "failed" { return nil, fmt.Errorf("scenario training failed: %s", job.Error) }
+		if time.Now().After(deadline) { return nil, fmt.Errorf("scenario training is still running") }
+		select { case <-ctx.Done(): return nil, ctx.Err(); case <-time.After(time.Second): }
+	}
+	raw, err := s.prophet.Forecast(ctx, scenarioID)
+	if err != nil { return nil, fmt.Errorf("scenario forecast failed: %w", err) }
+	result := mapProphet(raw)
+	result.History = base.History
+	result.Operations = base.Operations
+	result.RecurringPayments = base.RecurringPayments
+	result.Summary = "Сценарий: модель переобучена на временной копии операций"
+	return result, nil
 }
 
 // GetForecast reads the already calculated days and alerts from Ledger without recalculating
