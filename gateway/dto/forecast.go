@@ -114,5 +114,13 @@ type PlanEvent struct {
 
 // ScenarioRequest represents "what if" events to calculate a second forecast line
 type ScenarioRequest struct {
-	Events []ScheduledPayment `json:"events" binding:"required"`
+	Events     []ScheduledPayment  `json:"events"`
+	Operations []ScenarioOperation `json:"operations"`
+}
+
+type ScenarioOperation struct {
+	Date        string `json:"date" binding:"required"`
+	Amount      int64  `json:"amount" binding:"required,gt=0"`
+	IsIncome    bool   `json:"is_income"`
+	Description string `json:"description,omitempty"`
 }

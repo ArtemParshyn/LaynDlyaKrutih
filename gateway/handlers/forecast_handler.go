@@ -319,14 +319,14 @@ func (h *ForecastHandler) CalculateScenario(c *gin.Context) {
 	// Support both {"events": [...]} and [...]
 	var events []dto.ScheduledPayment
 	var req dto.ScenarioRequest
-	if err := json.Unmarshal(rawBytes, &req); err == nil && len(req.Events) > 0 {
+	if err := json.Unmarshal(rawBytes, &req); err == nil && (len(req.Events) > 0 || len(req.Operations) > 0) {
 		events = req.Events
 	} else if err := json.Unmarshal(rawBytes, &events); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid scenario events format: expected list or {events: [...]}"})
 		return
 	}
 
-	forecast, err := h.orchestrator.CalculateScenario(c.Request.Context(), userID, events)
+	forecast, err := h.orchestrator.CalculateScenario(c.Request.Context(), userID, events, req.Operations)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, dto.ErrorResponse{Error: err.Error()})
 		return

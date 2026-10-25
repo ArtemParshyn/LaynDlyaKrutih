@@ -272,7 +272,7 @@ func (s *OrchestratorService) CreateEventAndRecalculate(ctx context.Context, use
 }
 
 // CalculateScenario computes an alternative "what if" second line without saving or overwriting the base forecast
-func (s *OrchestratorService) CalculateScenario(ctx context.Context, userID uint, whatIfEvents []dto.ScheduledPayment) (*dto.ForecastResponse, error) {
+func (s *OrchestratorService) CalculateScenario(ctx context.Context, userID uint, whatIfEvents []dto.ScheduledPayment, changes []dto.ScenarioOperation) (*dto.ForecastResponse, error) {
 	ledgerData, err := s.ledger.GetData(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch ledger data: %w", err)
@@ -290,10 +290,27 @@ func (s *OrchestratorService) CalculateScenario(ctx context.Context, userID uint
 	scheduled = append(scheduled, plannedEvents...)
 	scheduled = append(scheduled, whatIfEvents...)
 
+	history := append([]dto.HistoryDay(nil), ledgerData.History...)
+	for _, change := range changes {
+		if change.Amount <= 0 { continue }
+		found := false
+		for i := range history {
+			if history[i].Date != change.Date { continue }
+			if change.IsIncome { history[i].IrregularIn += change.Amount } else { history[i].IrregularOut += change.Amount }
+			found = true
+			break
+		}
+		if !found {
+			item := dto.HistoryDay{Date: change.Date}
+			if change.IsIncome { item.IrregularIn = change.Amount } else { item.IrregularOut = change.Amount }
+			history = append(history, item)
+		}
+	}
+
 	forecastReq := dto.ForecastRequest{
 		AsOf:           ledgerData.AsOf,
 		OpeningBalance: ledgerData.OpeningBalance,
-		History:        ledgerData.History,
+		History:        history,
 		Scheduled:      scheduled,
 	}
 
