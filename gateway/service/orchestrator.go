@@ -52,7 +52,7 @@ func (s *OrchestratorService) Recalculate(ctx context.Context, userID uint) (*dt
 	if err != nil { return nil, err }
 	view.Days = []dto.ForecastDay{}
 	view.Alerts = []dto.Alert{}
-	view.Training = s.startTrainingCSV(ctx, userID, fileData)
+	view.Training = s.startTraining(ctx, userID)
 	return view, nil
 }
 
@@ -92,7 +92,7 @@ func (s *OrchestratorService) storeStatement(ctx context.Context, userID uint, f
 	// and the forecast line appears only when the user asks to process it.
 	view.Days = []dto.ForecastDay{}
 	view.Alerts = []dto.Alert{}
-	view.Training = s.startTraining(ctx, userID)
+	view.Training = s.startTrainingCSV(ctx, userID, fileData)
 	return view, nil
 }
 
