@@ -198,7 +198,7 @@ func detectColumns(row []string) (dateCol, amountCol, typeCol, categoryCol, desc
 		clean = strings.ReplaceAll(clean, "_", " ")
 
 		switch {
-		case strings.Contains(clean, "дата") || strings.Contains(clean, "date") || strings.Contains(clean, "время") || strings.Contains(clean, "день") || clean == "dt":
+		case strings.Contains(clean, "дата") || strings.Contains(clean, "date") || strings.Contains(clean, "время") || strings.Contains(clean, "день") || clean == "dt" || clean == "operation date":
 			if dateCol == -1 || strings.Contains(clean, "операц") || strings.Contains(clean, "operation") {
 				dateCol = i
 			}
