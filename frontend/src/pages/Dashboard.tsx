@@ -465,7 +465,7 @@ const Dashboard = () => {
                                 {scenarioMode ? 'Закрыть «Что если»' : 'Что если?'}
                             </button>
                             {scenarioMode && <>
-                                <p className="ScenarioHint">Выберите день на графике, затем измените операции этого дня.</p>
+                                <p className="ScenarioHint">Нажмите на точку или столбец дня на графике. Выбранная дата: <strong>{scenarioDate || '—'}</strong></p>
                                 <div className="ScenarioPresets">
                                     <button className="Button" type="button" onClick={() => applyScenarioPreset('revenue')}>Выручка −10%</button>
                                     <button className="Button" type="button" onClick={() => applyScenarioPreset('rent')}>Аренда +10%</button>

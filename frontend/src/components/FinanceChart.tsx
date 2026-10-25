@@ -174,7 +174,7 @@ const FinanceChart = ({ history, forecast, showBounds = false, onDateClick, scen
                         }
                     }}
                     onClick={(state) => {
-                        const payloadDate = state?.activePayload?.[0]?.payload?.date;
+                        const payloadDate = (state as unknown as { activePayload?: Array<{ payload?: { date?: string } }> })?.activePayload?.[0]?.payload?.date;
                         const date = state?.activeLabel ? String(state.activeLabel) : payloadDate ? String(payloadDate) : null;
                         if (date && !draggedRef.current) onDateClick?.(date);
                         draggedRef.current = false;
