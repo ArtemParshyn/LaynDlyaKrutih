@@ -452,6 +452,19 @@ const Dashboard = () => {
                                 </div>}
                             </div>
                         )}
+                        {forecast.category_report && <div className="MLInsights">
+                            <div className="GapCard MLInsightCard"><div>
+                                <div className="GapCard-date">Категории операций</div>
+                                <div className="GapCard-note">Размечено операций: {forecast.category_report.operations.toLocaleString('ru-RU')} · оборот: {forecast.category_report.amount.toLocaleString('ru-RU')} ₽</div>
+                                <div className="GapCard-note">{forecast.category_report.categories.slice(0, 5).map((item) => `${item.category}: ${item.amount.toLocaleString('ru-RU')} ₽`).join(' · ')}</div>
+                            </div></div>
+                        </div>}
+                        {forecast.payment_calendar?.payments?.length ? <div className="MLInsights">
+                            <div className="GapCard MLInsightCard"><div>
+                                <div className="GapCard-date">Обязательные платежи на календаре ML</div>
+                                {forecast.payment_calendar.payments.slice(0, 5).map((payment) => <div className="GapCard-note" key={`${payment.date}-${payment.category}`}>{payment.date} · {payment.category} · {payment.amount.toLocaleString('ru-RU')} ₽</div>)}
+                            </div></div>
+                        </div> : null}
 
                         <FinanceChart
                             showBounds={chartShowBounds}

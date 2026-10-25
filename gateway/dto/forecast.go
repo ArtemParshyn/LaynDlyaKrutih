@@ -95,6 +95,9 @@ type ForecastResponse struct {
 	Summary           string             `json:"summary,omitempty"`
 	Risks             json.RawMessage    `json:"risks,omitempty"`
 	Explanations      json.RawMessage    `json:"explanations,omitempty"`
+	CategoryReport    json.RawMessage    `json:"category_report,omitempty"`
+	RecurringStreams  json.RawMessage    `json:"recurring_streams,omitempty"`
+	PaymentCalendar   json.RawMessage    `json:"payment_calendar,omitempty"`
 }
 
 // LedgerData is received from the Ledger (выписка) service

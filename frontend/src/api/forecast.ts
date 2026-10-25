@@ -65,6 +65,44 @@ export interface ForecastResponse {
   summary?: string;
   risks?: unknown;
   explanations?: unknown;
+  category_report?: CategoryReport;
+  recurring_streams?: RecurringStream[];
+  payment_calendar?: PaymentCalendar;
+}
+
+export interface CategoryReport {
+  company_id: string;
+  operations: number;
+  amount: number;
+  categories: Array<{ category: string; ops: number; amount: number; share_ops: number; share_amount: number }>;
+  sources?: Record<string, number>;
+  other_share_amount?: number;
+  sample?: Array<{ date: string; amount: number; direction: string; category: string; subcategory?: string; confidence: number }>;
+}
+
+export interface RecurringStream {
+  stream_id: string;
+  category: string;
+  subcategory?: string;
+  direction: string;
+  counterparty_name?: string;
+  period_days: number;
+  next_date?: string;
+  amount_median: number;
+  amount_low: number;
+  amount_high: number;
+  mandatory: boolean;
+  confidence: number;
+  status: string;
+}
+
+export interface PaymentCalendar {
+  company_id: string;
+  start: string;
+  end: string;
+  days: number;
+  total: number;
+  payments: Array<{ date: string; category: string; subcategory?: string; amount: number; mandatory: boolean; confidence: number; overdue: boolean }>;
 }
 
 const pulseUrl = (pulseId: string, path: string) =>

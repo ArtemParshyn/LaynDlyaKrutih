@@ -59,6 +59,8 @@ type ProphetForecast struct {
 	Explanations json.RawMessage `json:"explanations"`
 }
 
+type ProphetCategoryReport json.RawMessage
+
 // Train queues a model for this company. The call returns as soon as the
 // CSV is accepted; fitting itself runs in the Prophet service.
 func (c *ProphetClient) Train(ctx context.Context, companyID string, csv []byte) (*ProphetTrain, error) {
@@ -140,6 +142,19 @@ func (c *ProphetClient) Forecast(ctx context.Context, companyID string) (*Prophe
 		return nil, fmt.Errorf("failed to decode prophet forecast: %w", err)
 	}
 	return &forecast, nil
+}
+
+func (c *ProphetClient) Analytics(ctx context.Context, companyID, path string, query string) (json.RawMessage, error) {
+	url := c.baseURL + "/analytics/" + companyID + "/" + path
+	if query != "" { url += "?" + query }
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil { return nil, err }
+	resp, err := c.httpClient.Do(req)
+	if err != nil { return nil, fmt.Errorf("prophet analytics request failed: %w", err) }
+	defer resp.Body.Close()
+	payload, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 { return nil, fmt.Errorf("%s", prophetDetail(payload, resp.StatusCode)) }
+	return json.RawMessage(payload), nil
 }
 
 // Delete removes a trained model. A missing model is not an error: a new

@@ -44,90 +44,16 @@ func NewOrchestratorService(
 	}
 }
 
-// Recalculate performs the full forecasting pipeline:
-// 1. Asks Ledger to archive the previous forecast line to history.
-// 2. Fetches opening balance, history, and recurring payments from Ledger.
-// 3. Fetches future planned events from Planning.
-// 4. Glues them into a single ForecastRequest and calls Forecast ML service.
-// 5. Sends the 30-day forecast and alerts to Ledger to be saved.
-// 6. Returns the forecast response (including rough: true as-is).
+// Recalculate starts the documented Prophet training flow. The ML service
+// trains from the statement CSV and does not accept the old JSON forecast
+// package or future planned payments.
 func (s *OrchestratorService) Recalculate(ctx context.Context, userID uint) (*dto.ForecastResponse, error) {
-	// 1. Copy old line to history in ledger (if any exists)
-	if err := s.ledger.ArchiveForecast(ctx, userID); err != nil {
-		log.Printf("Notice: archive forecast for user %d returned: %v (continuing)", userID, err)
-	}
-
-	// 2. Get data from ledger
-	ledgerData, err := s.ledger.GetData(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch ledger data: %w", err)
-	}
-
-	// 3. Get planned events
-	plannedEvents, err := s.planning.GetEvents(ctx, userID)
-	if err != nil {
-		log.Printf("Notice: could not fetch planning events for user %d: %v", userID, err)
-		plannedEvents = []dto.ScheduledPayment{}
-	}
-
-	// 4. Combine scheduled payments
-	scheduled := make([]dto.ScheduledPayment, 0, len(ledgerData.RecurringPayments)+len(ledgerData.Scheduled)+len(plannedEvents))
-	scheduled = append(scheduled, ledgerData.RecurringPayments...)
-	scheduled = append(scheduled, ledgerData.Scheduled...)
-	scheduled = append(scheduled, plannedEvents...)
-
-	forecastReq := dto.ForecastRequest{
-		AsOf:           ledgerData.AsOf,
-		OpeningBalance: ledgerData.OpeningBalance,
-		History:        ledgerData.History,
-		Scheduled:      scheduled,
-	}
-
-	// 5. Send package to forecast service
-	forecastResp, err := s.forecast.Calculate(ctx, &forecastReq)
-	if err != nil {
-		return nil, fmt.Errorf("forecast calculation failed: %w", err)
-	}
-
-	// 6. Save calculated days and alerts to ledger
-	if err := s.ledger.SaveForecast(ctx, userID, forecastResp); err != nil {
-		return nil, fmt.Errorf("failed to save forecast to ledger: %w", err)
-	}
-
-	// Read back after the save. A hand-entered past payment changes the actual
-	// balance, and that line is attached by the ledger on read, not by the forecast.
-	if stored, err := s.ledger.GetForecast(ctx, userID); err == nil && stored != nil {
-		forecastResp.History = stored.History
-		forecastResp.Operations = stored.Operations
-		forecastResp.RarePayments = stored.RarePayments
-	}
-
-	forecastResp.RecurringPayments = ledgerData.RecurringPayments
-	if forecastResp.RecurringPayments == nil {
-		forecastResp.RecurringPayments = []dto.ScheduledPayment{}
-	}
-	if forecastResp.Operations == nil {
-		forecastResp.Operations = s.recentOperations(ctx, userID)
-	}
-	if forecastResp.History == nil {
-		forecastResp.History = s.balanceHistory(ctx, userID)
-	}
-
-	// Append user-defined recurring planned events to recurring payments
-	if rawEvents, err := s.planning.GetEventsList(ctx, userID); err == nil {
-		for _, e := range rawEvents {
-			if e.Recurring {
-				forecastResp.RecurringPayments = append(forecastResp.RecurringPayments, dto.ScheduledPayment{
-					Date:     e.Date,
-					Amount:   e.Amount,
-					IsIncome: e.IsIncome,
-					Category: e.Category,
-				})
-			}
-		}
-	}
-
-	return forecastResp, nil
+	view, err := s.statementView(ctx, userID)
+	if err != nil { return nil, err }
+	view.Days = []dto.ForecastDay{}
+	view.Alerts = []dto.Alert{}
+	view.Training = s.startTraining(ctx, userID)
+	return view, nil
 }
 
 // UploadStatementAndRecalculate sends CSV to Ledger and triggers forecast recalculation
@@ -201,6 +127,7 @@ func (s *OrchestratorService) Process(ctx context.Context, userID uint) (*dto.Fo
 	ready.RarePayments = view.RarePayments
 	ready.RecurringPayments = view.RecurringPayments
 	ready.Training = &dto.Training{Status: "succeeded"}
+	s.enrichWithAnalytics(ctx, userID, ready)
 	if err := s.ledger.SaveForecast(ctx, userID, ready); err != nil {
 		return nil, fmt.Errorf("failed to save forecast to ledger: %w", err)
 	}
@@ -364,6 +291,13 @@ func (s *OrchestratorService) CalculateScenario(ctx context.Context, userID uint
 	result.RecurringPayments = base.RecurringPayments
 	result.Summary = "Сценарий: модель переобучена на временной копии операций"
 	return result, nil
+}
+
+func (s *OrchestratorService) enrichWithAnalytics(ctx context.Context, userID uint, response *dto.ForecastResponse) {
+	id := companyID(userID)
+	if report, err := s.prophet.Analytics(ctx, id, "categories", ""); err == nil { response.CategoryReport = report }
+	if streams, err := s.prophet.Analytics(ctx, id, "recurring", "status=active"); err == nil { response.RecurringStreams = streams }
+	if calendar, err := s.prophet.Analytics(ctx, id, "calendar", "days=30"); err == nil { response.PaymentCalendar = calendar }
 }
 
 // GetForecast reads the already calculated days and alerts from Ledger without recalculating
