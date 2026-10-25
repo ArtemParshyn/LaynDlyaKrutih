@@ -33,6 +33,8 @@ func main() {
 	api.Use(handlers.UserIDMiddleware())
 	{
 		api.POST("/statements", ledgerHandler.UploadStatements)
+		api.POST("/operations", ledgerHandler.AddManualOperation)
+		api.GET("/operations", ledgerHandler.Operations)
 		api.GET("/data", ledgerHandler.GetData)
 		api.POST("/forecast/archive", ledgerHandler.ArchiveForecast)
 		api.POST("/forecast", ledgerHandler.SaveForecast)

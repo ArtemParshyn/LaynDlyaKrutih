@@ -17,6 +17,24 @@ func (Operation) TableName() string {
 	return "operations"
 }
 
+// ManualOperation is a user-entered past payment. It is not part of the bank
+// statement: a new CSV replaces operations, but leaves these rows in place.
+// Amount is signed kopecks. These rows move the actual balance and must not
+// feed the weekday baseline or recurring detection.
+type ManualOperation struct {
+	ID          uint64    `gorm:"primaryKey" json:"id"`
+	UserID      uint64    `gorm:"index;not null" json:"user_id"`
+	Date        time.Time `gorm:"type:date;index;not null" json:"date"`
+	Amount      int64     `gorm:"not null" json:"amount"`
+	Category    string    `gorm:"type:varchar(255);not null" json:"category"`
+	Description string    `gorm:"type:text;not null" json:"description"`
+	CreatedAt   time.Time `gorm:"autoCreateTime" json:"created_at"`
+}
+
+func (ManualOperation) TableName() string {
+	return "manual_operations"
+}
+
 // Statement tracks statement file upload events
 type Statement struct {
 	ID         uint64    `gorm:"primaryKey" json:"id"`

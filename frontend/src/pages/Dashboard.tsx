@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import '../App.css';
 import FinanceChart from '../components/FinanceChart';
 import { toast } from 'sonner';
-import { getForecast, uploadStatement, ForecastAlert, ForecastResponse, ScheduledPayment, StatementOperation, rubles } from '../api/forecast';
+import { addOperation, processForecast, uploadStatement, ForecastAlert, ForecastResponse, ScheduledPayment, StatementOperation, rubles } from '../api/forecast';
 import PlasticCard from '../components/BusinessCard/BuisnessCard';
 
 const Dashboard = () => {
@@ -15,6 +15,12 @@ const Dashboard = () => {
     const storageKey = `forecast:${user?.id || 'guest'}`;
     const [forecast, setForecast] = useState<ForecastResponse | null>(null);
     const [showBounds, setShowBounds] = useState(false);
+    const [operationOpen, setOperationOpen] = useState(false);
+    const [operationDate, setOperationDate] = useState('');
+    const [operationAmount, setOperationAmount] = useState('');
+    const [operationIncome, setOperationIncome] = useState(false);
+    const [operationNote, setOperationNote] = useState('');
+    const [operationRecurring, setOperationRecurring] = useState(false);
 
     const recurringPayments = (data: ForecastResponse | null): ScheduledPayment[] =>
         data?.recurring_payments || [];
@@ -52,40 +58,83 @@ const Dashboard = () => {
         return `шанс небольшой, ${percent}%`;
     };
 
+    const remember = (next: ForecastResponse): ForecastResponse => ({
+        ...next,
+        days: next.days || [],
+        alerts: next.alerts || [],
+        operations: next.operations || [],
+        history: next.history || [],
+        rare_payments: next.rare_payments || [],
+    });
+
     const showForecast = (next: ForecastResponse) => {
-        setForecast(next);
+        setForecast(remember(next));
         setShowBounds(false);
         setIsLoading(false);
     };
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Training finishes in a few seconds. Keep asking until the new line is ready.
+    const pullForecast = async () => {
+        const deadline = Date.now() + 25000;
+        let next = await processForecast();
+        while (Date.now() < deadline) {
+            const status = next.training?.status;
+            const ready = (next.days?.length || 0) > 0 && status !== 'queued' && status !== 'running';
+            if (status === 'failed' || ready) break;
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            next = await processForecast();
+        }
+        const ready = (next.days?.length || 0) > 0 && next.training?.status !== 'failed';
+        setForecast(remember(next));
+        setShowBounds(ready);
+        return next;
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, append = false) => {
         const file = e.target.files?.[0];
+        e.target.value = '';
         if (!file) return;
         setIsLoading(true);
-        const started = Date.now();
-        const waitForForecast = async () => {
-            while (Date.now() - started < 30000) {
-                await new Promise((resolve) => window.setTimeout(resolve, 2000));
-                try {
-                    const saved = await getForecast();
-                    if ((saved.days?.length || 0) >= 30) return saved;
-                } catch {
-                    // сервер ещё считает
-                }
-            }
-            throw new Error('Прогноз ещё не готов. Обновите страницу чуть позже.');
-        };
         try {
-            const uploaded = uploadStatement(file).catch(() => null);
-            const ready = await Promise.race([
-                uploaded.then((saved) => ((saved?.days?.length || 0) >= 30 ? saved : null)),
-                waitForForecast(),
-            ]);
-            if (!ready) throw new Error('Прогноз ещё не готов. Обновите страницу чуть позже.');
-            showForecast(ready);
-            toast.success('Прогноз получен');
+            const saved = await uploadStatement(file, append);
+            if (saved.training?.status === 'failed') {
+                showForecast(saved);
+                toast.error(saved.training.error || 'Модель не удалось поставить на обучение');
+                return;
+            }
+            const next = await pullForecast();
+            setIsLoading(false);
+            if (next.training?.status === 'failed') {
+                toast.error(next.training.error || 'Обучение не удалось');
+                return;
+            }
+            if (!(next.days?.length || 0)) {
+                toast.message('Модель ещё учится. Нажмите «Обработать» ещё раз.');
+                return;
+            }
+            toast.success('Выписка загружена, прогноз обновлён');
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Ошибка загрузки выписки');
+            setIsLoading(false);
+        }
+    };
+
+    const handleProcess = async () => {
+        setIsLoading(true);
+        try {
+            const next = await pullForecast();
+            setIsLoading(false);
+            if (next.training?.status === 'failed') {
+                toast.error(next.training.error || 'Обучение не удалось');
+                return;
+            }
+            if (!(next.days?.length || 0)) {
+                toast.message('Модель ещё учится. Нажмите «Обработать» ещё раз.');
+                return;
+            }
+            toast.success('Прогноз на 30 дней готов');
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Прогноз ещё не готов');
             setIsLoading(false);
         }
     };
@@ -110,19 +159,63 @@ const Dashboard = () => {
         setShowBounds(false);
     };
 
+    const statementEnd = forecast?.history?.length
+        ? forecast.history[forecast.history.length - 1].date
+        : '';
+    const operationIsPlan = Boolean(operationDate && statementEnd && operationDate > statementEnd);
+
+    const handleAddOperation = async (event: React.FormEvent) => {
+        event.preventDefault();
+        const rublesAmount = Number(operationAmount.replace(',', '.'));
+        if (!operationDate || !Number.isFinite(rublesAmount) || rublesAmount <= 0) {
+            toast.error('Укажите дату и сумму больше нуля');
+            return;
+        }
+        setIsLoading(true);
+        try {
+            await addOperation({
+                date: operationDate,
+                amount: Math.round(rublesAmount * 100),
+                is_income: operationIncome,
+                description: operationNote.trim(),
+                recurring: operationIsPlan && operationRecurring,
+            });
+            const next = await pullForecast();
+            setOperationOpen(false);
+            setOperationAmount('');
+            setOperationNote('');
+            setOperationRecurring(false);
+            setIsLoading(false);
+            if (next.training?.status === 'failed') {
+                toast.error(next.training.error || 'Операция сохранена, но модель не переобучилась');
+                return;
+            }
+            toast.success(operationIsPlan ? 'Платёж учтён, прогноз пересчитан' : 'Операция учтена, прогноз пересчитан');
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Не удалось сохранить операцию');
+            setIsLoading(false);
+        }
+    };
+
     return (
         <div className="DashboardContainer">
 
             {/* ШАПКА (Приветствие слева, кнопка/статус справа) */}
             <div className="DashboardHeader">
                 <div>
-                    <h1>Финансовый пульс</h1>
-                    <p>Здравствуйте, {user?.company_name || user?.name || 'Гость'}. Ваш прогноз готов.</p>
+                    <h1>Остаток</h1>
+                    <p>{user?.company_name || user?.name || 'Гость'}. Прогноз на 30 дней.</p>
                 </div>
                 {!!forecast?.days?.length && (
-                    <button className="Button" onClick={handleReset}>
-                        Загрузить другой файл
-                    </button>
+                    <div className="UploadActions">
+                        <label className="Button upload-btn">
+                            Добавить CSV
+                            <input type="file" accept=".csv" onChange={(event) => handleFileUpload(event, true)} hidden />
+                        </label>
+                        <button className="Button" onClick={handleReset}>
+                            Загрузить другой файл
+                        </button>
+                    </div>
                 )}
             </div>
 
@@ -132,15 +225,14 @@ const Dashboard = () => {
                     <div className="skeleton skeleton-chart" />
                     <div className="skeleton skeleton-text" />
                     <div className="skeleton skeleton-text" />
-                    <button className="Button" onClick={openModal}>Войти, чтобы увидеть пульс</button>
+                    <button className="Button" onClick={openModal}>Войти</button>
                 </div>
             )}
 
             {/* ЗОНА ЗАГРУЗКИ */}
-            {user && !forecast?.days?.length && !isLoading && (
+            {user && !forecast?.history?.length && !forecast?.days?.length && !isLoading && (
                 <div className="UploadZone">
-                    <div className="UploadIcon">📊</div>
-                    <h2>Загрузите выписку для анализа</h2>
+                    <h2>Загрузите выписку</h2>
                     <p>Поддерживаются форматы CSV (выгрузки из банка или 1С)</p>
 
                     <div className="UploadActions">
@@ -160,52 +252,83 @@ const Dashboard = () => {
             {isLoading && (
                 <div className="LoadingZone">
                     <div className="spinner"></div>
-                    <h2>ИИ анализирует транзакции...</h2>
-                    <p>Пожалуйста, подождите</p>
+                    <h2>Считаем прогноз</h2>
+                    <p>Обычно это занимает несколько секунд</p>
                 </div>
             )}
 
             {/* РЕЗУЛЬТАТЫ (Сетка) */}
-            {forecast?.days?.length && !isLoading ? (
+            {(forecast?.history?.length || forecast?.days?.length) && !isLoading ? (
                 <div className="ResultsGrid">
 
                     {/* Карточка бизнеса (Правая колонка, верх) */}
+                    <div className="GridAdd">
+                        <div className="ChartHead">
+                            <h3 className="SectionTitle">Своя операция</h3>
+                        </div>
+                        <form className="OperationForm" onSubmit={handleAddOperation}>
+                            <label>
+                                Дата
+                                <input type="date" value={operationDate} onChange={(event) => setOperationDate(event.target.value)} required />
+                            </label>
+                            <label>
+                                Сумма, ₽
+                                <input
+                                    type="number"
+                                    min="0.01"
+                                    step="0.01"
+                                    value={operationAmount}
+                                    onChange={(event) => setOperationAmount(event.target.value)}
+                                    placeholder="10000"
+                                    required
+                                />
+                            </label>
+                            <label>
+                                Комментарий
+                                <input
+                                    type="text"
+                                    value={operationNote}
+                                    onChange={(event) => setOperationNote(event.target.value)}
+                                    placeholder="Назначение платежа"
+                                />
+                            </label>
+                            <div className="OperationForm-choice">
+                                <button type="button" className={!operationIncome ? 'is-active' : ''} onClick={() => setOperationIncome(false)}>Расход</button>
+                                <button type="button" className={operationIncome ? 'is-active' : ''} onClick={() => setOperationIncome(true)}>Приход</button>
+                            </div>
+                            {operationIsPlan && (
+                                <label className="OperationForm-check">
+                                    <input
+                                        type="checkbox"
+                                        checked={operationRecurring}
+                                        onChange={(event) => setOperationRecurring(event.target.checked)}
+                                    />
+                                    Повторять каждый месяц
+                                </label>
+                            )}
+                            <p className="GapCard-note">
+                                {operationIsPlan
+                                    ? 'Дата позже выписки: платёж сдвинет прогноз и не изменит фактический остаток.'
+                                    : 'Дата в пределах выписки: платёж сдвинет фактический остаток и не станет ежедневным расходом.'}
+                            </p>
+                            <button className="Button" type="submit">Сохранить и пересчитать</button>
+                        </form>
+                    </div>
+
                     <div className="GridCard">
                         <PlasticCard
                             companyName={user?.company_name || user?.name || 'Моя компания'}
-                            ostatok={rubles(forecast.days[forecast.days.length - 1]?.expected_balance || 0)}
+                            ostatok={rubles(
+                                (showBounds ? forecast.days[forecast.days.length - 1]?.expected_balance : undefined)
+                                ?? forecast.history?.[forecast.history.length - 1]?.balance
+                                ?? 0
+                            )}
                             cardStatus={
                                 nearestGap(forecast.alerts)
                                     ? `Разрыв ${chancePercent(nearestGap(forecast.alerts)?.chance || 0)}%`
                                     : 'Стабилен'
                             }
                         />
-                    </div>
-
-                    {/* Регулярные платежи, которые нашёл бэкенд */}
-                    <div className="GridTable">
-                        <h3 className="SectionTitle">Регулярные платежи</h3>
-                        {recurringPayments(forecast).length ? (
-                            <div className="GapList">
-                                {recurringByCategory(recurringPayments(forecast)).map((group) => (
-                                    <div key={`${group.category}:${group.is_income}`} className="GapCard">
-                                        <div>
-                                            <div className="GapCard-date">{group.category}</div>
-                                            <div className="GapCard-note">
-                                                {group.count} {group.is_income ? 'приходов' : 'расходов'}
-                                            </div>
-                                        </div>
-                                        <div className="GapCard-sum">
-                                            <div className={group.is_income ? 'Amount--plus' : 'Amount--minus'}>
-                                                {group.is_income ? '+' : '−'}{rubles(group.amount).toLocaleString('ru-RU')} ₽
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <p className="GapCard-note">Регулярных платежей в выписке не найдено.</p>
-                        )}
                     </div>
 
                     {/* График (На всю ширину, или по центру) */}
@@ -261,11 +384,9 @@ const Dashboard = () => {
                                 ))}
                             </div>
                         )}
-                        {!showBounds && (
-                            <button className="Button" onClick={() => setShowBounds(true)}>
-                                Обработать
-                            </button>
-                        )}
+                        <button className="Button" type="button" onClick={handleProcess}>
+                            Обработать
+                        </button>
                     </div>
 
                     <div className="GridOps">
@@ -276,7 +397,10 @@ const Dashboard = () => {
                                     <div key={`${op.date}:${op.description}:${index}`} className="GapCard">
                                         <div>
                                             <div className="GapCard-date">{op.date}</div>
-                                            <div className="GapCard-note">{op.category || op.description || 'Без категории'}</div>
+                                            <div className="GapCard-note">
+                                                {op.manual ? 'Добавлено вручную' : (op.category || op.description || 'Без категории')}
+                                                {op.manual && op.description ? ` · ${op.description}` : ''}
+                                            </div>
                                         </div>
                                         <div className="GapCard-sum">
                                             <div className={op.is_income ? 'Amount--plus' : 'Amount--minus'}>

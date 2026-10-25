@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Tooltip, Brush } from 'recharts';
+import { useEffect, useState } from 'react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Tooltip, ReferenceArea, ReferenceLine } from 'recharts';
 import '../App.css';
 
 interface ChartPoint {
@@ -36,10 +36,18 @@ const dayLabel = (value: string) => {
     return day && month ? `${day}.${month}` : value;
 };
 
+// The visible line is the fact on the left and the expected forecast on the right.
+const levelOf = (point: ChartPoint) =>
+    point.balance != null ? point.balance : point.mid;
+
 const FinanceChart = ({ history, forecast, showBounds = false }: FinanceChartProps) => {
     const [windowDays, setWindowDays] = useState(90);
-    const last = history[history.length - 1];
-    const visibleHistory = history.slice(-windowDays);
+    const [dragFrom, setDragFrom] = useState<string | null>(null);
+    const [dragTo, setDragTo] = useState<string | null>(null);
+    const safeHistory = (history || []).filter((point) => point?.date && Number.isFinite(point.balance));
+    const safeForecast = (forecast || []).filter((point) => point?.date && Number.isFinite(point.balance));
+    const last = safeHistory[safeHistory.length - 1];
+    const visibleHistory = safeHistory.slice(-windowDays);
     const points: ChartPoint[] = visibleHistory.map((point, index) => {
         const isJoin = showBounds && index === visibleHistory.length - 1;
         return {
@@ -51,8 +59,10 @@ const FinanceChart = ({ history, forecast, showBounds = false }: FinanceChartPro
         };
     });
 
-    if (showBounds && last && forecast.length) {
-        forecast.forEach((point) => points.push({
+    // Forecast stays on mid/low/high. Putting it on balance draws the fact
+    // series over the expected line, so a wavy Prophet forecast looks flat.
+    if (showBounds && safeForecast.length) {
+        safeForecast.forEach((point) => points.push({
             date: point.date,
             low: point.low,
             high: point.high,
@@ -60,7 +70,7 @@ const FinanceChart = ({ history, forecast, showBounds = false }: FinanceChartPro
         }));
     }
 
-    const forecastValues = forecast.flatMap((point) => [point.low, point.high, point.balance])
+    const forecastValues = safeForecast.flatMap((point) => [point.low, point.high, point.balance])
         .filter((value): value is number => value != null);
     const historyValues = visibleHistory.map((point) => point.balance).filter((value): value is number => value != null);
     const historySpan = historyValues.length
@@ -75,6 +85,30 @@ const FinanceChart = ({ history, forecast, showBounds = false }: FinanceChartPro
         ? [Math.min(...forecastValues, last?.balance ?? forecastValues[0]) - pad,
             Math.max(...forecastValues, last?.balance ?? forecastValues[0]) + pad]
         : undefined;
+
+    useEffect(() => {
+        setDragFrom(null);
+        setDragTo(null);
+    }, [windowDays, showBounds, points.length]);
+
+    const byDate = new Map(points.map((point, index) => [point.date, index]));
+    const anchorDate = dragFrom;
+    const endDate = dragTo;
+    const from = anchorDate != null ? points[byDate.get(anchorDate) ?? -1] : points[0];
+    const to = endDate != null ? points[byDate.get(endDate) ?? -1] : points[points.length - 1];
+    const bandFrom = anchorDate && endDate && (byDate.get(anchorDate) ?? 0) <= (byDate.get(endDate) ?? 0)
+        ? anchorDate : endDate;
+    const bandTo = anchorDate && endDate && (byDate.get(anchorDate) ?? 0) <= (byDate.get(endDate) ?? 0)
+        ? endDate : anchorDate;
+    const fromValue = from ? levelOf(from) : undefined;
+    const toValue = to ? levelOf(to) : undefined;
+    const change = fromValue != null && toValue != null && fromValue !== 0
+        ? ((toValue - fromValue) / Math.abs(fromValue)) * 100
+        : null;
+    const delta = fromValue != null && toValue != null ? toValue - fromValue : null;
+    const changeText = change == null
+        ? 'Зажмите мышь на графике и протяните период'
+        : `${delta != null && delta > 0 ? '+' : ''}${delta != null ? Math.round(delta).toLocaleString('ru-RU') : ''} ₽ (${change > 0 ? '+' : ''}${change.toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%)`;
 
     return (
         <div className="FinanceChart">
@@ -93,9 +127,43 @@ const FinanceChart = ({ history, forecast, showBounds = false }: FinanceChartPro
                     ))}
                 </div>
             </div>
+            {points.length > 1 && (
+                <p className={change != null && change < 0 ? 'ChartChange ChartChange--down' : 'ChartChange'}>
+                    {from?.date && to?.date ? `${dayLabel(from.date)} → ${dayLabel(to.date)}: ` : ''}
+                    <strong>{changeText}</strong>
+                </p>
+            )}
 
+            {points.length === 0 ? (
+                <p className="GapCard-note">Недостаточно точек, чтобы построить график.</p>
+            ) : null}
+            {points.length > 0 && (
             <ResponsiveContainer width="100%" height={340}>
-                <AreaChart data={points} margin={{ top: 10, right: 16, left: 8, bottom: 0 }}>
+                <AreaChart
+                    data={points}
+                    margin={{ top: 10, right: 16, left: 8, bottom: 0 }}
+                    onMouseDown={(state) => {
+                        const date = state?.activeLabel ? String(state.activeLabel) : null;
+                        if (!date) return;
+                        setDragFrom(date);
+                        setDragTo(date);
+                    }}
+                    onMouseMove={(state) => {
+                        if (!dragFrom) return;
+                        const date = state?.activeLabel ? String(state.activeLabel) : null;
+                        if (date) setDragTo(date);
+                    }}
+                    onMouseUp={() => {
+                        setDragFrom(null);
+                        setDragTo(null);
+                    }}
+                    onMouseLeave={() => {
+                        if (dragFrom) {
+                            setDragFrom(null);
+                            setDragTo(null);
+                        }
+                    }}
+                >
                     <defs>
                         <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.3}/>
@@ -120,7 +188,7 @@ const FinanceChart = ({ history, forecast, showBounds = false }: FinanceChartPro
                     />
                     <Tooltip
                         formatter={(value, name) => [
-                            fullMoney(Number(value)),
+                            fullMoney(Number(value ?? 0)),
                             name === 'balance' ? 'Факт'
                                 : name === 'mid' ? 'Средний прогноз'
                                     : name === 'high' ? 'Верхняя граница'
@@ -140,20 +208,32 @@ const FinanceChart = ({ history, forecast, showBounds = false }: FinanceChartPro
                         />
                     )}
                     {showBounds && (
-                        <Area type="monotone" dataKey="low" name="low" stroke="#fb7185" strokeDasharray="2 6" strokeWidth={2} fill="transparent" connectNulls={false} activeDot={{ r: 4 }} />
+                        <Area type="monotone" dataKey="low" name="low" stroke="#8f3b49" strokeDasharray="2 6" strokeWidth={1.5} fill="transparent" connectNulls={false} activeDot={{ r: 3 }} />
                     )}
                     {showBounds && (
-                        <Area type="monotone" dataKey="high" name="high" stroke="#38bdf8" strokeWidth={3} fill="transparent" connectNulls={false} activeDot={{ r: 4 }} />
+                        <Area type="monotone" dataKey="high" name="high" stroke="#7f9aa8" strokeWidth={1.5} fill="transparent" connectNulls={false} activeDot={{ r: 3 }} />
                     )}
                     {showBounds && (
-                        <Area type="monotone" dataKey="mid" name="mid" stroke="#fbbf24" strokeWidth={3} fill="transparent" connectNulls={false} activeDot={{ r: 4 }} />
+                        <Area type="monotone" dataKey="mid" name="mid" stroke="#d7c07a" strokeWidth={2} fill="transparent" connectNulls={false} activeDot={{ r: 3 }} />
                     )}
                     <Area type="monotone" dataKey="balance" name="balance" stroke="var(--accent)" strokeWidth={3} fill="url(#colorBalance)" connectNulls={false} activeDot={{ r: 5 }} />
-                    {points.length > 14 && (
-                        <Brush dataKey="date" height={24} stroke="var(--accent)" tickFormatter={dayLabel} travellerWidth={8} />
+                    {bandFrom && bandTo && bandFrom !== bandTo && (
+                        <ReferenceArea
+                            x1={bandFrom}
+                            x2={bandTo}
+                            fill={change != null && change < 0 ? 'rgba(244, 63, 94, 0.28)' : 'rgba(0, 135, 74, 0.28)'}
+                            strokeOpacity={0}
+                        />
+                    )}
+                    {bandFrom && bandTo && bandFrom !== bandTo && (
+                        <ReferenceLine x={bandFrom} stroke={change != null && change < 0 ? '#fb7185' : '#00874A'} strokeDasharray="4 4" />
+                    )}
+                    {bandFrom && bandTo && bandFrom !== bandTo && (
+                        <ReferenceLine x={bandTo} stroke={change != null && change < 0 ? '#fb7185' : '#00874A'} strokeDasharray="4 4" />
                     )}
                 </AreaChart>
             </ResponsiveContainer>
+            )}
         </div>
     );
 };

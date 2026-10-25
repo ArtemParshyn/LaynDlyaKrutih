@@ -87,6 +87,16 @@ func (h *PlanningHandler) GetEvents(c *gin.Context) {
 	c.JSON(http.StatusOK, payments)
 }
 
+// ClearEvents handles DELETE /events. A new statement drops plans from the previous one.
+func (h *PlanningHandler) ClearEvents(c *gin.Context) {
+	userID := getUserID(c)
+	if err := h.svc.ClearUser(userID); err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
 // DeleteEvent handles DELETE /events/:id
 func (h *PlanningHandler) DeleteEvent(c *gin.Context) {
 	userID := getUserID(c)

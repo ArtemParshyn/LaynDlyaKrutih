@@ -49,7 +49,11 @@ func (h *LedgerHandler) UploadStatements(c *gin.Context) {
 		fileBytes = body
 	}
 
-	if err := h.svc.ProcessAndSaveStatement(userID, filename, fileBytes); err != nil {
+	save := h.svc.ProcessAndSaveStatement
+	if c.Query("mode") == "append" {
+		save = h.svc.AppendStatement
+	}
+	if err := save(userID, filename, fileBytes); err != nil {
 		c.JSON(http.StatusUnprocessableEntity, dto.ErrorResponse{Error: err.Error()})
 		return
 	}
@@ -115,6 +119,42 @@ func (h *LedgerHandler) GetForecast(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, forecast)
+}
+
+// AddManualOperation handles POST /operations. The date must be on or before
+// the statement end; later dates are plans and do not belong in the ledger.
+func (h *LedgerHandler) AddManualOperation(c *gin.Context) {
+	userID := getUserID(c)
+
+	var req dto.ManualOperationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
+	if err := h.svc.AddManualOperation(userID, req); err != nil {
+		status := http.StatusUnprocessableEntity
+		if errors.Is(err, service.ErrNoData) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+// Operations handles GET /operations. Prophet trains on this full list.
+func (h *LedgerHandler) Operations(c *gin.Context) {
+	userID := getUserID(c)
+	ops, err := h.svc.Operations(userID)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if errors.Is(err, service.ErrNoData) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, ops)
 }
 
 // Health handles GET /health

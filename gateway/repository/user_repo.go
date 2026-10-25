@@ -1,9 +1,11 @@
 package repository
 
 import (
-	"gateway/entity"
 	"errors"
+	"gateway/entity"
+	"strings"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
 )
 
@@ -32,12 +34,24 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 func (r *UserRepository) Create(user *entity.User) error {
 	tx := r.db.Create(user)
 	if tx.Error != nil {
-		if errors.Is(tx.Error, gorm.ErrDuplicatedKey) {
+		if isDuplicate(tx.Error) {
 			return ErrUserAlreadyExists
 		}
 		return tx.Error
 	}
 	return nil
+}
+
+func isDuplicate(err error) bool {
+	if errors.Is(err, gorm.ErrDuplicatedKey) {
+		return true
+	}
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		return true
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "duplicate key") || strings.Contains(msg, "sqlstate 23505")
 }
 
 func (r *UserRepository) GetByID(id uint) (*entity.User, error) {

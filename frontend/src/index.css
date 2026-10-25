@@ -1,8 +1,7 @@
 body {
   margin: 0;
-  font-family: "Arial Black", Impact, Haettenschweiler, sans-serif;
-  font-stretch: expanded;
-  letter-spacing: 0.03em;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

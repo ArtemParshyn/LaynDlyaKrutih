@@ -51,6 +51,15 @@ type OperationDTO struct {
 	Category    string `json:"category"`
 	Description string `json:"description"`
 	IsIncome    bool   `json:"is_income"`
+	Manual      bool   `json:"manual,omitempty"`
+}
+
+type ManualOperationRequest struct {
+	Date        string `json:"date" binding:"required"`
+	Amount      int64  `json:"amount" binding:"required,gt=0"`
+	IsIncome    bool   `json:"is_income"`
+	Category    string `json:"category"`
+	Description string `json:"description"`
 }
 
 type BalancePoint struct {

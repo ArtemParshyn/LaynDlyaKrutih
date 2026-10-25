@@ -52,7 +52,8 @@ func main() {
 	ledgerClient := client.NewLedgerClient(ledgerURL)
 	planningClient := client.NewPlanningClient(planningURL)
 	forecastClient := client.NewForecastClient(forecastURL)
-	orchestratorService := service.NewOrchestratorService(ledgerClient, planningClient, forecastClient)
+	prophetClient := client.NewProphetClient(forecastURL)
+	orchestratorService := service.NewOrchestratorService(ledgerClient, planningClient, forecastClient, prophetClient)
 	forecastHandler := handlers.NewForecastHandler(orchestratorService)
 
 	router := gin.Default()
@@ -107,6 +108,11 @@ func main() {
 
 		protected.GET("/api/forecast", forecastHandler.GetForecast)
 		protected.GET("/forecast", forecastHandler.GetForecast)
+		protected.POST("/api/forecast/process", forecastHandler.Process)
+		protected.POST("/forecast/process", forecastHandler.Process)
+
+		protected.POST("/api/operations", forecastHandler.AddOperation)
+		protected.POST("/operations", forecastHandler.AddOperation)
 
 		protected.POST("/api/events", forecastHandler.CreateEvent)
 		protected.POST("/events", forecastHandler.CreateEvent)

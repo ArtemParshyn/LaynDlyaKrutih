@@ -39,11 +39,17 @@ export interface StatementOperation {
   category: string;
   description: string;
   is_income: boolean;
+  manual?: boolean;
 }
 
 export interface BalancePoint {
   date: string;
   balance: number;
+}
+
+export interface TrainingStatus {
+  status: 'queued' | 'running' | 'succeeded' | 'failed' | string;
+  error?: string;
 }
 
 export interface ForecastResponse {
@@ -54,12 +60,15 @@ export interface ForecastResponse {
   operations?: StatementOperation[];
   history?: BalancePoint[];
   rare_payments?: RarePayment[];
+  training?: TrainingStatus;
+  summary?: string;
 }
 
-export const uploadStatement = (file: File) => {
+export const uploadStatement = (file: File, append = false) => {
   const body = new FormData();
   body.append('file', file);
-  return apiClient<ForecastResponse>(`${API_URL}/api/statements`, {
+  const url = append ? `${API_URL}/api/statements?mode=append` : `${API_URL}/api/statements`;
+  return apiClient<ForecastResponse>(url, {
     method: 'POST',
     body,
   });
@@ -72,6 +81,21 @@ export const uploadStatementText = (csv: string, filename = 'statement.csv') => 
 
 export const getForecast = () =>
   apiClient<ForecastResponse>(`${API_URL}/api/forecast`, { method: 'GET' });
+
+export const processForecast = () =>
+  apiClient<ForecastResponse>(`${API_URL}/api/forecast/process`, { method: 'POST' });
+
+export const addOperation = (operation: {
+  date: string;
+  amount: number;
+  is_income: boolean;
+  description?: string;
+  recurring?: boolean;
+}) =>
+  apiClient<ForecastResponse>(`${API_URL}/api/operations`, {
+    method: 'POST',
+    body: JSON.stringify({ ...operation, category: 'Прочее' }),
+  });
 
 export const createEvent = (event: {
   date: string;

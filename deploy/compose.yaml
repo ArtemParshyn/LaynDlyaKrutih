@@ -139,10 +139,15 @@ services:
       - review-net
 
   forecast:
-    build: ../forecast
+    build: ../prophet
     image: review-forecast
     container_name: review-forecast
     restart: unless-stopped
+    environment:
+      N_TRIALS: ${PROPHET_TRIALS:-20}
+      TOP_K: ${PROPHET_TOP_K:-2}
+    volumes:
+      - prophet-data:/app/artifacts
     networks:
       review-net:
         aliases:
@@ -163,15 +168,17 @@ services:
 
 networks:
   review-net:
-    name: review-net-local
+    name: review-net
     driver: bridge
 
 volumes:
   auth-data:
-    name: review-auth-data-local
+    name: review-auth-data
   redis-data:
-    name: review-redis-data-local
+    name: review-redis-data
   ledger-data:
-    name: review-ledger-data-local
+    name: review-ledger-data
   planning-data:
-    name: review-planning-data-local
+    name: review-planning-data
+  prophet-data:
+    name: review-prophet-data
