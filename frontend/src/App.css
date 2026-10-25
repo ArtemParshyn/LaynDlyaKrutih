@@ -1185,6 +1185,19 @@ main {
 .ScenarioTools { width: 100%; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border-soft); text-align: left; }
 .MLInsights { display: grid; gap: 10px; margin-bottom: 16px; }
 .MLInsightCard { width: 100%; }
+.MLOverview { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 16px; margin: 0 0 20px; padding: 18px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+.MLOverview-title { grid-column: 1 / -1; font-weight: 700; font-size: 16px; }
+.MLOverview-section { min-width: 0; }
+.MLOverview-heading { font-weight: 650; margin-bottom: 5px; }
+.MLOverview-meta { color: var(--text-muted); font-size: 12px; margin-bottom: 10px; }
+.MLCategoryList { display: grid; gap: 6px; }
+.MLCategoryItem, .MLRow { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; font-size: 13px; }
+.MLCategoryItem strong, .MLRow strong { white-space: nowrap; }
+.MLRow { padding: 7px 0; border-bottom: 1px solid var(--border-soft); }
+.MLRow span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.MLRow small { display: block; color: var(--text-muted); font-size: 11px; margin-top: 2px; }
+@media (max-width: 900px) { .MLOverview { grid-template-columns: 1fr 1fr; } .MLOverview-section:first-of-type { grid-column: 1 / -1; } }
+@media (max-width: 640px) { .MLOverview { grid-template-columns: 1fr; } .MLOverview-title, .MLOverview-section:first-of-type { grid-column: auto; } }
 .ScenarioTools > .Button.is-active { background: var(--accent); color: white; }
 .ScenarioHint { color: var(--text-muted); font-size: 13px; margin: 10px 0; }
 .ScenarioEditor { display: grid; gap: 10px; margin-top: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }

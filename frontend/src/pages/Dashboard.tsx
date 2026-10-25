@@ -452,27 +452,22 @@ const Dashboard = () => {
                                 </div>}
                             </div>
                         )}
-                        {forecast.category_report && <div className="MLInsights">
-                            <div className="GapCard MLInsightCard"><div>
-                                <div className="GapCard-date">Категории операций</div>
-                                <div className="GapCard-note">Размечено операций: {forecast.category_report.operations.toLocaleString('ru-RU')} · оборот: {forecast.category_report.amount.toLocaleString('ru-RU')} ₽</div>
-                                <div className="GapCard-note">{forecast.category_report.categories.slice(0, 5).map((item) => `${item.category}: ${item.amount.toLocaleString('ru-RU')} ₽`).join(' · ')}</div>
-                            </div></div>
+                        {(forecast.category_report || forecast.payment_calendar?.payments?.length || forecast.recurring_streams?.length) && <div className="MLOverview">
+                            <div className="MLOverview-title">Аналитика ML</div>
+                            {forecast.category_report && <div className="MLOverview-section">
+                                <div className="MLOverview-heading">Категории</div>
+                                <div className="MLOverview-meta">{forecast.category_report.operations.toLocaleString('ru-RU')} операций · оборот {forecast.category_report.amount.toLocaleString('ru-RU')} ₽</div>
+                                <div className="MLCategoryList">{forecast.category_report.categories.slice(0, 6).map((item) => <div className="MLCategoryItem" key={item.category}><span>{item.category}</span><strong>{item.amount.toLocaleString('ru-RU')} ₽</strong></div>)}</div>
+                            </div>}
+                            {forecast.recurring_streams?.length ? <div className="MLOverview-section">
+                                <div className="MLOverview-heading">Регулярные выплаты</div>
+                                {forecast.recurring_streams.slice(0, 4).map((stream) => <div className="MLRow" key={stream.stream_id}><span>{stream.category}{stream.subcategory ? ` · ${stream.subcategory}` : ''}<small>каждые {stream.period_days} дн.</small></span><strong>{stream.amount_median.toLocaleString('ru-RU')} ₽</strong></div>)}
+                            </div> : null}
+                            {forecast.payment_calendar?.payments?.length ? <div className="MLOverview-section">
+                                <div className="MLOverview-heading">Ближайшие обязательные платежи</div>
+                                {forecast.payment_calendar.payments.slice(0, 4).map((payment) => <div className="MLRow" key={`${payment.date}-${payment.category}`}><span>{payment.date} · {payment.category}</span><strong>{payment.amount.toLocaleString('ru-RU')} ₽</strong></div>)}
+                            </div> : null}
                         </div>}
-                        {forecast.payment_calendar?.payments?.length ? <div className="MLInsights">
-                            <div className="GapCard MLInsightCard"><div>
-                                <div className="GapCard-date">Обязательные платежи на календаре ML</div>
-                                {forecast.payment_calendar.payments.slice(0, 5).map((payment) => <div className="GapCard-note" key={`${payment.date}-${payment.category}`}>{payment.date} · {payment.category} · {payment.amount.toLocaleString('ru-RU')} ₽</div>)}
-                            </div></div>
-                        </div> : null}
-                        {forecast.recurring_streams?.length ? <div className="MLInsights">
-                            <div className="GapCard MLInsightCard"><div>
-                                <div className="GapCard-date">Выявленные регулярные выплаты</div>
-                                {forecast.recurring_streams.slice(0, 5).map((stream) => <div className="GapCard-note" key={stream.stream_id}>
-                                    {stream.category}{stream.subcategory ? ` · ${stream.subcategory}` : ''} · каждые {stream.period_days} дн. · {stream.amount_median.toLocaleString('ru-RU')} ₽{stream.next_date ? ` · следующая ${stream.next_date}` : ''}
-                                </div>)}
-                            </div></div>
-                        </div> : null}
 
                         <FinanceChart
                             showBounds={chartShowBounds}
@@ -516,7 +511,7 @@ const Dashboard = () => {
                                         <div className="OperationCard-main">
                                             <div className="GapCard-date">{op.date}</div>
                                             <div className="GapCard-note">
-                                                {op.manual ? 'Добавлено вручную' : (op.category || op.description || 'Без категории')}
+                                                {op.manual ? 'Добавлено вручную' : (op.category && op.category !== 'Прочее' ? op.category : (op.description || 'Операция'))}
                                                 {op.manual && op.description ? ` · ${op.description}` : ''}
                                             </div>
                                         </div>
