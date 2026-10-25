@@ -891,6 +891,14 @@ main {
   box-shadow: none;
   transform: none;
 }
+
+.OneCApiCard { margin-top: 18px; padding: 20px; border: 1px solid var(--border-soft); border-radius: 16px; background: var(--surface); }
+.OneCApiCard h2 { margin: 0 0 8px; }
+.OneCApiCard p, .OneCApiCard small { color: var(--text-muted); display: block; }
+.OneCApiCard label { display: block; margin-top: 14px; color: var(--text-muted); font-size: 13px; }
+.OneCApiCard input { width: 100%; box-sizing: border-box; margin-top: 5px; padding: 10px; border: 1px solid var(--border-soft); border-radius: 8px; background: var(--surface); color: var(--text); }
+.OneCApiRow { display: flex; gap: 8px; align-items: center; }
+.OneCApiRow input { flex: 1; }
 .ProfilePage-avatar { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 
 /* ============ ФОРМА АВАТАРА ============ */

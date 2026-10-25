@@ -211,6 +211,19 @@ export const getMe = async (): Promise<UserInfo> => {
   return normalizeUser(res);
 };
 
+export interface OneCSettings {
+  user_id: number;
+  upload_url: string;
+  forecast_url: string;
+  token: string;
+}
+
+export const getOneCSettings = () =>
+  apiClient<OneCSettings>(`${API_URL}/me/integration/1c`, { method: 'GET' });
+
+export const regenerateOneCSettings = () =>
+  apiClient<OneCSettings>(`${API_URL}/me/integration/1c/regenerate`, { method: 'POST' });
+
 export interface LoginRequest {
   email: string;
   password: string;

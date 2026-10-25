@@ -95,6 +95,7 @@ services:
       PLANNING_SERVICE_URL: http://review-planning:8082
       FORECAST_SERVICE_URL: http://review-forecast:8000
       ONEC_INTEGRATION_TOKEN: ${ONEC_INTEGRATION_TOKEN:-change_this_to_a_long_random_secret}
+      ONEC_PUBLIC_URL: ${ONEC_PUBLIC_URL:-http://localhost:8080}
     depends_on:
       postgres:
         condition: service_healthy

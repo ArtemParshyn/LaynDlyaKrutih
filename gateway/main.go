@@ -36,6 +36,11 @@ func main() {
 
 	// Connect PostgreSQL & Redis
 	db := database.ConnectPostgres()
+	// Keep the user schema compatible for existing installations. The SQL
+	// migration is also shipped in migrations/ for regular deployment tools.
+	if err := db.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS onec_token VARCHAR(128)").Error; err != nil {
+		log.Printf("1C token schema check failed: %v", err)
+	}
 	database.ConnectRedis()
 
 	// Initialize repository and handlers
@@ -120,6 +125,8 @@ func main() {
 		protected.GET("/me", userHandler.GetMe)
 		protected.PATCH("/me", userHandler.UpdateMe)
 		protected.DELETE("/me", userHandler.DeleteMe)
+		protected.GET("/me/integration/1c", userHandler.GetOneCSettings)
+		protected.POST("/me/integration/1c/regenerate", userHandler.RegenerateOneCSettings)
 		protected.GET("/users", userHandler.GetAllUsers)
 		protected.GET("/users/:id", userHandler.GetUser)
 		protected.PATCH("/users/:id", userHandler.UpdateUser)

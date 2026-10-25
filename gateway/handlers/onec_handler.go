@@ -25,6 +25,9 @@ func NewOneCHandler(forecast *ForecastHandler) *OneCHandler {
 // header to avoid putting credentials or account identity in the URL.
 func userFromOneCHeader(c *gin.Context) (uint, bool) {
 	raw := strings.TrimSpace(c.GetHeader("X-User-ID"))
+	if raw == "" {
+		raw = strings.TrimSpace(c.Query("user_id"))
+	}
 	id, err := strconv.ParseUint(raw, 10, 64)
 	if err != nil || id == 0 || id > uint64(^uint(0)) {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "X-User-ID must contain a valid positive integer"})

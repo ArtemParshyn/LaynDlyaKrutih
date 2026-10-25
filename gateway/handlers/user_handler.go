@@ -1,15 +1,20 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"gateway/auth"
 	"gateway/database"
 	"gateway/dto"
+	"gateway/entity"
 	"gateway/repository"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -17,6 +22,77 @@ import (
 
 type UserHandler struct {
 	repo repository.UserRepositoryInterface
+}
+
+type OneCSettingsResponse struct {
+	UserID      uint   `json:"user_id"`
+	UploadURL   string `json:"upload_url"`
+	ForecastURL string `json:"forecast_url"`
+	Token       string `json:"token"`
+}
+
+func (h *UserHandler) GetOneCSettings(c *gin.Context) {
+	userID, ok := getCurrentUserID(c)
+	if !ok {
+		return
+	}
+	user, err := h.repo.GetByID(userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "user not found"})
+		return
+	}
+	if user.OneCToken == "" {
+		if err := h.ensureOneCToken(user); err != nil {
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "failed to create 1C token"})
+			return
+		}
+	}
+	c.JSON(http.StatusOK, oneCSettings(c, userID, user.OneCToken))
+}
+
+func (h *UserHandler) RegenerateOneCSettings(c *gin.Context) {
+	userID, ok := getCurrentUserID(c)
+	if !ok {
+		return
+	}
+	user, err := h.repo.GetByID(userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "user not found"})
+		return
+	}
+	if err := h.ensureOneCToken(user); err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "failed to create 1C token"})
+		return
+	}
+	c.JSON(http.StatusOK, oneCSettings(c, userID, user.OneCToken))
+}
+
+func (h *UserHandler) ensureOneCToken(user *entity.User) error {
+	if user.OneCToken == "" {
+		buf := make([]byte, 32)
+		if _, err := rand.Read(buf); err != nil {
+			return err
+		}
+		user.OneCToken = "onec_" + hex.EncodeToString(buf)
+		return h.repo.Update(user)
+	}
+	return nil
+}
+
+func oneCSettings(c *gin.Context, userID uint, token string) OneCSettingsResponse {
+	base := os.Getenv("ONEC_PUBLIC_URL")
+	if base == "" {
+		base = "http://localhost:8080"
+	}
+	base = strings.TrimRight(base, "/")
+	// The per-user machine-to-machine token is deliberately included in the generated
+	// link so a 1C form only needs the link and a local CSV path.
+	return OneCSettingsResponse{
+		UserID:      userID,
+		UploadURL:   base + "/integration/1c/statements?user_id=" + strconv.FormatUint(uint64(userID), 10) + "&token=" + token,
+		ForecastURL: base + "/integration/1c/forecast?user_id=" + strconv.FormatUint(uint64(userID), 10) + "&token=" + token,
+		Token:       token,
+	}
 }
 
 func NewUserHandler(repo repository.UserRepositoryInterface) *UserHandler {

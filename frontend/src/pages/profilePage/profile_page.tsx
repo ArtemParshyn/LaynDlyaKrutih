@@ -7,12 +7,16 @@ import { ChangePasswordForm } from './ChangePasswordForm';
 import EditNameForm from './EditNameForm';
 import EmptyState from '../../components/EmptyState';
 import { toast } from 'sonner';
+import { getOneCSettings, regenerateOneCSettings, OneCSettings } from '../../api/auth';
 
 const ProfilePage = () => {
   const { user, loading, openModal, deleteAccount, refreshProfile } = useAuth();
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
   const [isNameOpen, setIsNameOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [oneC, setOneC] = useState<OneCSettings | null>(null);
+  const [oneCOpen, setOneCOpen] = useState(false);
+  const [oneCLoading, setOneCLoading] = useState(false);
 
   useEffect(() => {
     refreshProfile().catch(() => {});
@@ -34,6 +38,22 @@ const ProfilePage = () => {
       setIsDeleting(false);
     }
   };
+
+  const toggleOneC = async () => {
+    if (oneCOpen) { setOneCOpen(false); return; }
+    setOneCLoading(true);
+    try { setOneC(await getOneCSettings()); setOneCOpen(true); }
+    catch (err) { toast.error(err instanceof Error ? err.message : 'Не удалось получить настройки 1С'); }
+    finally { setOneCLoading(false); }
+  };
+
+  const regenerateOneC = async () => {
+    if (!window.confirm('Старый токен 1С перестанет работать. Продолжить?')) return;
+    try { setOneC(await regenerateOneCSettings()); toast.success('Токен 1С обновлён'); }
+    catch (err) { toast.error(err instanceof Error ? err.message : 'Не удалось обновить токен'); }
+  };
+
+  const copy = async (value: string) => { await navigator.clipboard.writeText(value); toast.success('Скопировано'); };
 
   return (
     <div className="ProfilePage">
@@ -61,6 +81,9 @@ const ProfilePage = () => {
             <button className="Button ProfileActions-btn" onClick={() => setIsPasswordOpen(true)}>
               Сменить пароль
             </button>
+            <button className="Button ProfileActions-btn" onClick={toggleOneC} disabled={oneCLoading}>
+              {oneCLoading ? 'Загрузка...' : oneCOpen ? 'Скрыть API 1С' : 'API-кабинет 1С'}
+            </button>
             <button
               className="Button ProfileActions-btn ProfileActions-btn--danger"
               onClick={handleDeleteAccount}
@@ -69,6 +92,15 @@ const ProfilePage = () => {
               {isDeleting ? 'Удаление...' : 'Удалить аккаунт'}
             </button>
           </div>
+
+          {oneCOpen && oneC && <section className="OneCApiCard">
+            <h2>Подключение 1С</h2>
+            <p>Вставьте ссылку в форму 1С. Там останется указать только путь к CSV-файлу.</p>
+            <label>Ссылка загрузки выписки</label>
+            <div className="OneCApiRow"><input readOnly value={oneC.upload_url} /><button className="Button" onClick={() => copy(oneC.upload_url)}>Копировать</button></div>
+            <button className="Button" onClick={regenerateOneC}>Перегенерировать токен</button>
+            <small>Ссылка содержит секрет доступа. Не публикуйте её. После перегенерации старые ссылки перестанут работать. Для подключения через интернет настройте HTTPS и ONEC_PUBLIC_URL.</small>
+          </section>}
 
           <EditNameForm isOpen={isNameOpen} onClose={() => setIsNameOpen(false)} />
           <ChangePasswordForm isOpen={isPasswordOpen} onClose={() => setIsPasswordOpen(false)} />
