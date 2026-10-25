@@ -1419,3 +1419,131 @@ main {
   position: fixed;
 }
 
+.PulseBoard {
+  width: min(1100px, 100%);
+  margin: 0 auto;
+  text-align: left;
+}
+
+.PulseCreate,
+.PulseCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.PulseCreate {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin: 8px 0 22px;
+  padding: 16px;
+}
+
+.PulseCreate label {
+  display: grid;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.PulseCreate input[type="text"] {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  padding: 8px 10px;
+}
+
+.PulseCreate-file {
+  position: relative;
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  color: var(--text);
+  overflow: hidden;
+}
+
+.PulseCreate-file input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.PulseGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.PulseCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 230px;
+  padding: 16px;
+}
+
+.PulseCard-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.PulseCard h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 650;
+}
+
+.PulseCard-delete {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+
+.PulseCard-delete:hover { color: var(--error); }
+
+.PulseSpark {
+  width: 100%;
+  height: 56px;
+  color: var(--accent);
+}
+
+.PulseSpark--empty {
+  display: flex;
+  align-items: flex-end;
+  color: var(--text-faint);
+  font-size: 13px;
+}
+
+.PulseCard-balance {
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.PulseCard-date {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.PulseCard .Button { align-self: flex-start; margin-top: auto; }
+
+.DashboardHeader a { color: var(--text-muted); }
+.DashboardHeader a:hover { color: var(--accent); }
+
+@media (max-width: 720px) {
+  .PulseCreate { grid-template-columns: 1fr; }
+}
+

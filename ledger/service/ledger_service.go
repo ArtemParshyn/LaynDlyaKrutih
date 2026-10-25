@@ -140,6 +140,27 @@ func (s *LedgerService) replaceStatement(userID uint64, filename string, ops []m
 	})
 }
 
+// Wipe drops every row that belongs to one pulse. The gateway calls it with
+// the pulse key, not with the account id, so other graphs stay.
+func (s *LedgerService) Wipe(userID uint64) error {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		tables := []any{
+			&model.Operation{},
+			&model.ManualOperation{},
+			&model.ForecastDay{},
+			&model.ForecastAlert{},
+			&model.ForecastHistory{},
+			&model.Statement{},
+		}
+		for _, table := range tables {
+			if err := tx.Where("user_id = ?", userID).Delete(table).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 // GetData computes opening balance, continuous history, and recurring payments
 func (s *LedgerService) GetData(userID uint64) (*dto.DataResponse, error) {
 	var ops []model.Operation

@@ -59,7 +59,7 @@ const Header = () => {
   return (
     <header className="Header">
       <Link to="/" className="Button">
-        Главная
+        Пульсы
       </Link>
       <div className="Header-desktop-only">
         <ProfileButtonHeader />

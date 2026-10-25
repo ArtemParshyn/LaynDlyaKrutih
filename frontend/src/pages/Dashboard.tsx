@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import '../App.css';
 import FinanceChart from '../components/FinanceChart';
 import { toast } from 'sonner';
-import { addOperation, processForecast, uploadStatement, ForecastAlert, ForecastResponse, ScheduledPayment, StatementOperation, rubles } from '../api/forecast';
+import { addOperation, getForecast, processForecast, uploadStatement, ForecastAlert, ForecastResponse, ScheduledPayment, StatementOperation, rubles } from '../api/forecast';
+import { getPulse } from '../api/pulses';
 import PlasticCard from '../components/BusinessCard/BuisnessCard';
 
 const Dashboard = () => {
+    const { pulseId = '' } = useParams();
+    const location = useLocation();
     const { user, loading, openModal } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
-
-
-    // Храним данные графика и найденные разрывы
-    const storageKey = `forecast:${user?.id || 'guest'}`;
+    const [pulseName, setPulseName] = useState('Остаток');
     const [forecast, setForecast] = useState<ForecastResponse | null>(null);
     const [showBounds, setShowBounds] = useState(false);
     const [operationOpen, setOperationOpen] = useState(false);
@@ -76,13 +77,13 @@ const Dashboard = () => {
     // Training finishes in a few seconds. Keep asking until the new line is ready.
     const pullForecast = async () => {
         const deadline = Date.now() + 25000;
-        let next = await processForecast();
+        let next = await processForecast(pulseId);
         while (Date.now() < deadline) {
             const status = next.training?.status;
             const ready = (next.days?.length || 0) > 0 && status !== 'queued' && status !== 'running';
             if (status === 'failed' || ready) break;
             await new Promise((resolve) => setTimeout(resolve, 1000));
-            next = await processForecast();
+            next = await processForecast(pulseId);
         }
         const ready = (next.days?.length || 0) > 0 && next.training?.status !== 'failed';
         setForecast(remember(next));
@@ -96,7 +97,7 @@ const Dashboard = () => {
         if (!file) return;
         setIsLoading(true);
         try {
-            const saved = await uploadStatement(file, append);
+            const saved = await uploadStatement(pulseId, file, append);
             if (saved.training?.status === 'failed') {
                 showForecast(saved);
                 toast.error(saved.training.error || 'Модель не удалось поставить на обучение');
@@ -146,7 +147,7 @@ const Dashboard = () => {
             const response = await fetch('/data/financial_data.csv');
             if (!response.ok) throw new Error('Демо-файл не найден');
             const file = new File([await response.blob()], 'financial_data.csv', { type: 'text/csv' });
-            showForecast(await uploadStatement(file));
+            showForecast(await uploadStatement(pulseId, file));
         } catch (err) {
             toast.error('Не удалось загрузить демо-файл. Проверьте папку public/data');
             setIsLoading(false);
@@ -173,7 +174,7 @@ const Dashboard = () => {
         }
         setIsLoading(true);
         try {
-            await addOperation({
+            await addOperation(pulseId, {
                 date: operationDate,
                 amount: Math.round(rublesAmount * 100),
                 is_income: operationIncome,
@@ -197,14 +198,43 @@ const Dashboard = () => {
         }
     };
 
+    useEffect(() => {
+        if (!user || !pulseId) return;
+        let stop = false;
+        const fresh = Boolean((location.state as { fresh?: boolean } | null)?.fresh);
+        (async () => {
+            setIsLoading(true);
+            try {
+                const pulse = await getPulse(pulseId);
+                if (stop) return;
+                setPulseName(pulse.name);
+                const loaded = await getForecast(pulseId);
+                if (stop) return;
+                if (fresh && !(loaded.days?.length)) {
+                    await pullForecast();
+                    return;
+                }
+                setForecast(remember(loaded));
+                setShowBounds((loaded.days?.length || 0) > 0);
+                setIsLoading(false);
+            } catch (err) {
+                if (!stop) {
+                    toast.error(err instanceof Error ? err.message : 'Не удалось открыть пульс');
+                    setIsLoading(false);
+                }
+            }
+        })();
+        return () => { stop = true; };
+    }, [user?.id, pulseId]);
+
     return (
         <div className="DashboardContainer">
 
             {/* ШАПКА (Приветствие слева, кнопка/статус справа) */}
             <div className="DashboardHeader">
                 <div>
-                    <h1>Остаток</h1>
-                    <p>{user?.company_name || user?.name || 'Гость'}. Прогноз на 30 дней.</p>
+                    <h1>{pulseName}</h1>
+                    <p><Link to="/">Все пульсы</Link>. Прогноз на 30 дней.</p>
                 </div>
                 {!!forecast?.days?.length && (
                     <div className="UploadActions">

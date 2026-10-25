@@ -79,6 +79,25 @@ func (c *LedgerClient) upload(ctx context.Context, userID uint, filename string,
 	return nil
 }
 
+// Wipe deletes the statement stored under this key.
+func (c *LedgerClient) Wipe(ctx context.Context, userID uint) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.baseURL+"/statements", nil)
+	if err != nil {
+		return fmt.Errorf("failed to create wipe request: %w", err)
+	}
+	req.Header.Set("X-User-ID", strconv.FormatUint(uint64(userID), 10))
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("ledger wipe request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("ledger wipe error %d: %s", resp.StatusCode, string(respBody))
+	}
+	return nil
+}
+
 // ArchiveForecast asks Ledger to archive previous forecast line before calculating a new one
 func (c *LedgerClient) ArchiveForecast(ctx context.Context, userID uint) error {
 	url := fmt.Sprintf("%s/forecast/archive", c.baseURL)

@@ -64,35 +64,40 @@ export interface ForecastResponse {
   summary?: string;
 }
 
-export const uploadStatement = (file: File, append = false) => {
+const pulseUrl = (pulseId: string, path: string) =>
+  `${API_URL}/api/pulses/${pulseId}${path}`;
+
+export const uploadStatement = (pulseId: string, file: File, append = false) => {
   const body = new FormData();
   body.append('file', file);
-  const url = append ? `${API_URL}/api/statements?mode=append` : `${API_URL}/api/statements`;
+  const url = append
+    ? pulseUrl(pulseId, '/statements?mode=append')
+    : pulseUrl(pulseId, '/statements');
   return apiClient<ForecastResponse>(url, {
     method: 'POST',
     body,
   });
 };
 
-export const uploadStatementText = (csv: string, filename = 'statement.csv') => {
+export const uploadStatementText = (pulseId: string, csv: string, filename = 'statement.csv') => {
   const file = new File([csv], filename, { type: 'text/csv' });
-  return uploadStatement(file);
+  return uploadStatement(pulseId, file);
 };
 
-export const getForecast = () =>
-  apiClient<ForecastResponse>(`${API_URL}/api/forecast`, { method: 'GET' });
+export const getForecast = (pulseId: string) =>
+  apiClient<ForecastResponse>(pulseUrl(pulseId, '/forecast'), { method: 'GET' });
 
-export const processForecast = () =>
-  apiClient<ForecastResponse>(`${API_URL}/api/forecast/process`, { method: 'POST' });
+export const processForecast = (pulseId: string) =>
+  apiClient<ForecastResponse>(pulseUrl(pulseId, '/forecast/process'), { method: 'POST' });
 
-export const addOperation = (operation: {
+export const addOperation = (pulseId: string, operation: {
   date: string;
   amount: number;
   is_income: boolean;
   description?: string;
   recurring?: boolean;
 }) =>
-  apiClient<ForecastResponse>(`${API_URL}/api/operations`, {
+  apiClient<ForecastResponse>(pulseUrl(pulseId, '/operations'), {
     method: 'POST',
     body: JSON.stringify({ ...operation, category: 'Прочее' }),
   });

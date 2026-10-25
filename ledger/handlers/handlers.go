@@ -61,6 +61,15 @@ func (h *LedgerHandler) UploadStatements(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+// Wipe removes the statement, forecast and hand-entered payments of one pulse.
+func (h *LedgerHandler) Wipe(c *gin.Context) {
+	if err := h.svc.Wipe(getUserID(c)); err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
 // GetData handles GET /data (as_of, opening_balance, history, recurring_payments)
 func (h *LedgerHandler) GetData(c *gin.Context) {
 	userID := getUserID(c)

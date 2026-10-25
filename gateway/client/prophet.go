@@ -140,6 +140,25 @@ func (c *ProphetClient) Forecast(ctx context.Context, companyID string) (*Prophe
 	return &forecast, nil
 }
 
+// Delete removes a trained model. A missing model is not an error: a new
+// pulse may be deleted before training finishes.
+func (c *ProphetClient) Delete(ctx context.Context, companyID string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.baseURL+"/models/"+companyID, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("prophet delete request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusNoContent {
+		return nil
+	}
+	payload, _ := io.ReadAll(resp.Body)
+	return fmt.Errorf("%s", prophetDetail(payload, resp.StatusCode))
+}
+
 func prophetDetail(payload []byte, status int) string {
 	var body struct {
 		Detail string `json:"detail"`

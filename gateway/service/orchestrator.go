@@ -345,6 +345,23 @@ func (s *OrchestratorService) GetForecast(ctx context.Context, userID uint) (*dt
 	return resp, nil
 }
 
+// Forget removes the statement, plans and model stored under this key.
+func (s *OrchestratorService) Forget(ctx context.Context, userID uint) error {
+	if err := s.ledger.Wipe(ctx, userID); err != nil {
+		return err
+	}
+	if err := s.planning.ClearEvents(ctx, userID); err != nil {
+		return err
+	}
+	if err := s.prophet.Delete(ctx, companyID(userID)); err != nil {
+		return err
+	}
+	s.mu.Lock()
+	delete(s.jobs, userID)
+	s.mu.Unlock()
+	return nil
+}
+
 func companyID(userID uint) string {
 	return fmt.Sprintf("u%d", userID)
 }

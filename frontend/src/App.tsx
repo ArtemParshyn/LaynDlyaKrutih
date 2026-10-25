@@ -2,7 +2,8 @@ import './App.css';
 import Header from './regular/header';
 import Footer from './regular/footer';
 import { Routes, Route } from 'react-router-dom';
-import Dashboard from './pages/Dashboard'; // НАШ НОВЫЙ ДАШБОРД
+import Dashboard from './pages/Dashboard';
+import Pulses from './pages/Pulses';
 import ProfilePage from './pages/profilePage/profile_page';
 import ProtectedRoute from './components/protected_route';
 import { useAuth } from './context/AuthContext';
@@ -53,10 +54,8 @@ const AppContent = () => {
             <Routes>
               <Route path='*' element={<NotFoundPage />} />
 
-              <Route
-                  path='/'
-                  element={<Dashboard />}
-              />
+              <Route path='/' element={<Pulses />} />
+              <Route path='/pulses/:pulseId' element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
 
               <Route path='/profile' element={<ProtectedRoute> <ProfilePage /> </ProtectedRoute>} />
             </Routes>

@@ -40,6 +40,7 @@ func main() {
 
 	// Initialize repository and handlers
 	userRepo := repository.NewUserRepository(db)
+	pulseRepo := repository.NewPulseRepository(db)
 	authHandler := handlers.NewAuthHandler(userRepo)
 	userHandler := handlers.NewUserHandler(userRepo)
 
@@ -54,7 +55,8 @@ func main() {
 	forecastClient := client.NewForecastClient(forecastURL)
 	prophetClient := client.NewProphetClient(forecastURL)
 	orchestratorService := service.NewOrchestratorService(ledgerClient, planningClient, forecastClient, prophetClient)
-	forecastHandler := handlers.NewForecastHandler(orchestratorService)
+	forecastHandler := handlers.NewForecastHandler(orchestratorService, pulseRepo)
+	pulseHandler := handlers.NewPulseHandler(pulseRepo, orchestratorService)
 
 	router := gin.Default()
 
@@ -101,6 +103,15 @@ func main() {
 		protected.GET("/users/:id", userHandler.GetUser)
 		protected.PATCH("/users/:id", userHandler.UpdateUser)
 		protected.DELETE("/users/:id", userHandler.DeleteUser)
+
+		protected.GET("/api/pulses", pulseHandler.List)
+		protected.POST("/api/pulses", pulseHandler.Create)
+		protected.GET("/api/pulses/:pulseID", pulseHandler.Get)
+		protected.DELETE("/api/pulses/:pulseID", pulseHandler.Delete)
+		protected.POST("/api/pulses/:pulseID/statements", forecastHandler.UploadStatement)
+		protected.GET("/api/pulses/:pulseID/forecast", forecastHandler.GetForecast)
+		protected.POST("/api/pulses/:pulseID/forecast/process", forecastHandler.Process)
+		protected.POST("/api/pulses/:pulseID/operations", forecastHandler.AddOperation)
 
 		// Statements & Forecast orchestration
 		protected.POST("/api/statements", forecastHandler.UploadStatement)

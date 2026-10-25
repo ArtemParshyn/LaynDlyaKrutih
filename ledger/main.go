@@ -33,6 +33,7 @@ func main() {
 	api.Use(handlers.UserIDMiddleware())
 	{
 		api.POST("/statements", ledgerHandler.UploadStatements)
+		api.DELETE("/statements", ledgerHandler.Wipe)
 		api.POST("/operations", ledgerHandler.AddManualOperation)
 		api.GET("/operations", ledgerHandler.Operations)
 		api.GET("/data", ledgerHandler.GetData)

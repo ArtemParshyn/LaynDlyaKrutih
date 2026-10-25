@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"gateway/dto"
+	"gateway/repository"
 	"gateway/service"
 	"io"
 	"net/http"
@@ -13,10 +14,35 @@ import (
 
 type ForecastHandler struct {
 	orchestrator *service.OrchestratorService
+	pulses       *repository.PulseRepository
 }
 
-func NewForecastHandler(orchestrator *service.OrchestratorService) *ForecastHandler {
-	return &ForecastHandler{orchestrator: orchestrator}
+func NewForecastHandler(orchestrator *service.OrchestratorService, pulses *repository.PulseRepository) *ForecastHandler {
+	return &ForecastHandler{orchestrator: orchestrator, pulses: pulses}
+}
+
+// actor is the ledger key of the open pulse. Routes without a pulse keep the
+// account id, which is also the key of the first saved statement.
+func (h *ForecastHandler) actor(c *gin.Context) (uint, bool) {
+	owner, ok := getUserID(c)
+	if !ok {
+		return 0, false
+	}
+	raw := c.Param("pulseID")
+	if raw == "" || h.pulses == nil {
+		return owner, true
+	}
+	id, err := strconv.ParseUint(raw, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "некорректный пульс"})
+		return 0, false
+	}
+	pulse, err := h.pulses.Owned(owner, uint(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "пульс не найден"})
+		return 0, false
+	}
+	return uint(pulse.LedgerKey), true
 }
 
 func getUserID(c *gin.Context) (uint, bool) {
@@ -47,7 +73,7 @@ func getUserID(c *gin.Context) (uint, bool) {
 // @Failure      502 {object} dto.ErrorResponse
 // @Router       /api/statements [post]
 func (h *ForecastHandler) UploadStatement(c *gin.Context) {
-	userID, ok := getUserID(c)
+	userID, ok := h.actor(c)
 	if !ok {
 		return
 	}
@@ -99,7 +125,7 @@ func (h *ForecastHandler) UploadStatement(c *gin.Context) {
 // @Failure      502 {object} dto.ErrorResponse
 // @Router       /api/forecast/process [post]
 func (h *ForecastHandler) Process(c *gin.Context) {
-	userID, ok := getUserID(c)
+	userID, ok := h.actor(c)
 	if !ok {
 		return
 	}
@@ -122,7 +148,7 @@ func (h *ForecastHandler) Process(c *gin.Context) {
 // @Failure      502 {object} dto.ErrorResponse
 // @Router       /api/forecast [get]
 func (h *ForecastHandler) GetForecast(c *gin.Context) {
-	userID, ok := getUserID(c)
+	userID, ok := h.actor(c)
 	if !ok {
 		return
 	}
@@ -150,7 +176,7 @@ func (h *ForecastHandler) GetForecast(c *gin.Context) {
 // @Failure      502 {object} dto.ErrorResponse
 // @Router       /api/events [post]
 func (h *ForecastHandler) CreateEvent(c *gin.Context) {
-	userID, ok := getUserID(c)
+	userID, ok := h.actor(c)
 	if !ok {
 		return
 	}
@@ -184,7 +210,7 @@ func (h *ForecastHandler) CreateEvent(c *gin.Context) {
 // @Failure      502 {object} dto.ErrorResponse
 // @Router       /api/operations [post]
 func (h *ForecastHandler) AddOperation(c *gin.Context) {
-	userID, ok := getUserID(c)
+	userID, ok := h.actor(c)
 	if !ok {
 		return
 	}
@@ -214,7 +240,7 @@ func (h *ForecastHandler) AddOperation(c *gin.Context) {
 // @Failure      502 {object} dto.ErrorResponse
 // @Router       /api/events [get]
 func (h *ForecastHandler) GetEvents(c *gin.Context) {
-	userID, ok := getUserID(c)
+	userID, ok := h.actor(c)
 	if !ok {
 		return
 	}
@@ -241,7 +267,7 @@ func (h *ForecastHandler) GetEvents(c *gin.Context) {
 // @Failure      502 {object} dto.ErrorResponse
 // @Router       /api/events/{id} [delete]
 func (h *ForecastHandler) DeleteEvent(c *gin.Context) {
-	userID, ok := getUserID(c)
+	userID, ok := h.actor(c)
 	if !ok {
 		return
 	}
@@ -276,7 +302,7 @@ func (h *ForecastHandler) DeleteEvent(c *gin.Context) {
 // @Failure      502 {object} dto.ErrorResponse
 // @Router       /api/scenarios [post]
 func (h *ForecastHandler) CalculateScenario(c *gin.Context) {
-	userID, ok := getUserID(c)
+	userID, ok := h.actor(c)
 	if !ok {
 		return
 	}
