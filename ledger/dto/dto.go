@@ -46,6 +46,7 @@ type RarePayment struct {
 }
 
 type OperationDTO struct {
+	ID          uint64 `json:"id,omitempty"`
 	Date        string `json:"date"`
 	Amount      int64  `json:"amount"`
 	Category    string `json:"category"`

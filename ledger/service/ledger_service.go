@@ -506,6 +506,7 @@ func (s *LedgerService) Operations(userID uint64) ([]dto.OperationDTO, error) {
 	out := make([]dto.OperationDTO, 0, len(ops)+len(manuals))
 	for _, op := range ops {
 		out = append(out, dto.OperationDTO{
+			ID:          op.ID,
 			Date:        op.Date.Format("2006-01-02"),
 			Amount:      op.Amount,
 			Category:    op.Category,
@@ -518,6 +519,7 @@ func (s *LedgerService) Operations(userID uint64) ([]dto.OperationDTO, error) {
 			continue
 		}
 		out = append(out, dto.OperationDTO{
+			ID:          op.ID,
 			Date:        op.Date.Format("2006-01-02"),
 			Amount:      op.Amount,
 			Category:    op.Category,
@@ -541,6 +543,7 @@ func (s *LedgerService) recentOperations(userID uint64, limit int) []dto.Operati
 	out := make([]dto.OperationDTO, 0, len(ops)+len(manuals))
 	for _, op := range ops {
 		out = append(out, dto.OperationDTO{
+			ID:          op.ID,
 			Date:        op.Date.Format("2006-01-02"),
 			Amount:      op.Amount,
 			Category:    op.Category,

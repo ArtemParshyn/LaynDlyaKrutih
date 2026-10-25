@@ -46,6 +46,7 @@ type RarePayment struct {
 }
 
 type Operation struct {
+	ID          uint64 `json:"id,omitempty"`
 	Date        string `json:"date"`
 	Amount      int64  `json:"amount"`
 	Category    string `json:"category"`
@@ -119,6 +120,9 @@ type ScenarioRequest struct {
 }
 
 type ScenarioOperation struct {
+	// ID identifies the stored operation being replaced. It is optional for
+	// newly added hypothetical operations.
+	ID          uint64 `json:"id,omitempty"`
 	Date        string `json:"date" binding:"required"`
 	Amount      int64  `json:"amount" binding:"required,gt=0"`
 	IsIncome    bool   `json:"is_income"`

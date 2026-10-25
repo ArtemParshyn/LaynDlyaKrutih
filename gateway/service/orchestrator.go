@@ -8,6 +8,7 @@ import (
 	"log"
 	"math"
 	"strings"
+	"sort"
 	"sync"
 	"time"
 )
@@ -277,21 +278,38 @@ func (s *OrchestratorService) CalculateScenario(ctx context.Context, userID uint
 	if err != nil { return nil, fmt.Errorf("failed to fetch operations: %w", err) }
 	base, err := s.GetForecast(ctx, userID)
 	if err != nil { return nil, fmt.Errorf("failed to fetch base forecast: %w", err) }
-	// The frontend sends a compensating movement followed by the edited one.
-	// Build a temporary statement only; Ledger and the user's model are untouched.
+	// Replace selected rows in a temporary statement only; Ledger and the
+	// user's model are untouched. ID is the stable identity from Ledger.
 	temporary := append([]dto.Operation(nil), ops...)
 	for _, change := range changes {
 		if change.Amount <= 0 { continue }
 		amount := change.Amount
 		if !change.IsIncome { amount = -amount }
+		if change.ID != 0 {
+			found := false
+			for i := range temporary {
+				if temporary[i].ID != change.ID { continue }
+				temporary[i].Date = change.Date
+				temporary[i].Amount = amount
+				temporary[i].IsIncome = change.IsIncome
+				if change.Description != "" { temporary[i].Description = change.Description }
+				found = true
+				break
+			}
+			if found { continue }
+		}
 		temporary = append(temporary, dto.Operation{Date: change.Date, Amount: amount, IsIncome: change.IsIncome, Description: change.Description, Category: "Сценарий"})
 	}
 	for _, event := range whatIfEvents {
 		if event.Amount <= 0 { continue }
 		amount := event.Amount
 		if !event.IsIncome { amount = -amount }
-		temporary = append(temporary, dto.Operation{Date: event.Date, Amount: amount, IsIncome: event.IsIncome, Description: "Сценарное событие", Category: event.Category})
+		 temporary = append(temporary, dto.Operation{Date: event.Date, Amount: amount, IsIncome: event.IsIncome, Description: "Сценарное событие", Category: event.Category})
 	}
+	sort.SliceStable(temporary, func(i, j int) bool {
+		if temporary[i].Date == temporary[j].Date { return temporary[i].ID < temporary[j].ID }
+		return temporary[i].Date < temporary[j].Date
+	})
 	scenarioID := fmt.Sprintf("scenario-%d-%d", userID, time.Now().UnixNano())
 	train, err := s.prophet.Train(ctx, scenarioID, prophetCSV(temporary))
 	if err != nil { return nil, fmt.Errorf("scenario training failed: %w", err) }

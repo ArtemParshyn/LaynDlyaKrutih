@@ -24,7 +24,8 @@ const Dashboard = () => {
     const [scenarioMode, setScenarioMode] = useState(false);
     const [scenarioDate, setScenarioDate] = useState('');
     const [scenarioResult, setScenarioResult] = useState<ForecastResponse | null>(null);
-    const [scenarioDraft, setScenarioDraft] = useState<Record<string, { amount: string; is_income: boolean }>>({});
+    const [scenarioSelected, setScenarioSelected] = useState<string | null>(null);
+    const [scenarioDraft, setScenarioDraft] = useState<Record<string, { date: string; amount: string; is_income: boolean; description: string }>>({});
 
     const recurringPayments = (data: ForecastResponse | null): ScheduledPayment[] =>
         data?.recurring_payments || [];
@@ -204,6 +205,7 @@ const Dashboard = () => {
     const handleChartDateClick = (date: string) => {
         if (scenarioMode) {
             setScenarioDate(date);
+            setScenarioSelected(null);
             return;
         }
         setOperationDate(date);
@@ -213,17 +215,15 @@ const Dashboard = () => {
         });
     };
 
-    const scenarioKey = (op: StatementOperation, index: number) => `${op.date}:${op.description}:${index}`;
+    const scenarioKey = (op: StatementOperation, index: number) => `${op.id || op.date}:${op.description}:${index}`;
     const selectedScenarioOperations = (forecast?.operations || []).filter((op) => op.date === scenarioDate);
     const scenarioChanges = (forecast?.operations || []).flatMap((op, index) => {
-        const draft = scenarioDraft[scenarioKey(op, index)];
-        if (!draft) return [];
+        const key = scenarioKey(op, index);
+        if (scenarioSelected !== key) return [];
+        const draft = scenarioDraft[key] || { date: op.date, amount: String(Math.abs(op.amount) / 100), is_income: op.is_income, description: op.description };
         const amount = Math.round(Number(draft.amount.replace(',', '.')) * 100);
         if (!Number.isFinite(amount) || amount <= 0) return [];
-        return [
-            { date: op.date, amount: Math.abs(op.amount), is_income: !op.is_income, description: `Сценарий: отмена ${op.description}` },
-            { date: op.date, amount, is_income: draft.is_income, description: op.description },
-        ];
+        return [{ id: op.id, date: draft.date, amount, is_income: draft.is_income, description: draft.description }];
     });
     const runScenario = async () => {
         try {
@@ -243,7 +243,7 @@ const Dashboard = () => {
             const text = `${op.category} ${op.description}`.toLowerCase();
             if ((type === 'revenue' && op.is_income) || (type === 'rent' && text.includes('аренд'))) {
                 const amount = Math.abs(op.amount) / 100;
-                next[scenarioKey(op, index)] = { amount: String(Math.round(amount * (type === 'revenue' ? 0.9 : 1.1))), is_income: op.is_income };
+                next[scenarioKey(op, index)] = { date: op.date, amount: String(Math.round(amount * (type === 'revenue' ? 0.9 : 1.1))), is_income: op.is_income, description: op.description };
             }
         });
         setScenarioDraft(next);
@@ -475,14 +475,22 @@ const Dashboard = () => {
                                     {!selectedScenarioOperations.length && <p className="ScenarioHint">Операций нет — добавьте изменение вручную ниже.</p>}
                                     {selectedScenarioOperations.map((op, index) => {
                                         const key = scenarioKey(op, (forecast?.operations || []).indexOf(op));
-                                        const draft = scenarioDraft[key] || { amount: String(Math.abs(op.amount) / 100), is_income: op.is_income };
-                                        return <div className="ScenarioRow" key={key}>
-                                            <span>{op.category || op.description || 'Операция'}</span>
-                                            <input value={draft.amount} onChange={(event) => setScenarioDraft((current) => ({ ...current, [key]: { ...draft, amount: event.target.value } }))} />
-                                            <button className="Button" type="button" onClick={() => setScenarioDraft((current) => ({ ...current, [key]: { ...draft, is_income: !draft.is_income } }))}>{draft.is_income ? '↑ Приход' : '↓ Расход'}</button>
+                                        const draft = scenarioDraft[key] || { date: op.date, amount: String(Math.abs(op.amount) / 100), is_income: op.is_income, description: op.description };
+                                        const selected = scenarioSelected === key;
+                                        return <div className={selected ? 'ScenarioRow is-selected' : 'ScenarioRow'} key={key}>
+                                            <button className="ScenarioOperationPick" type="button" onClick={() => setScenarioSelected(key)}>
+                                                <span>{op.category || op.description || 'Операция'}</span>
+                                                <small>{op.description || 'Без описания'} · {op.is_income ? 'приход' : 'расход'} · {rubles(Math.abs(op.amount)).toLocaleString('ru-RU')} ₽</small>
+                                            </button>
+                                            {selected && <>
+                                                <input type="date" value={draft.date} onChange={(event) => setScenarioDraft((current) => ({ ...current, [key]: { ...draft, date: event.target.value } }))} />
+                                                <input value={draft.amount} onChange={(event) => setScenarioDraft((current) => ({ ...current, [key]: { ...draft, amount: event.target.value } }))} />
+                                                <input value={draft.description} placeholder="Описание" onChange={(event) => setScenarioDraft((current) => ({ ...current, [key]: { ...draft, description: event.target.value } }))} />
+                                                <button className="Button" type="button" onClick={() => setScenarioDraft((current) => ({ ...current, [key]: { ...draft, is_income: !draft.is_income } }))}>{draft.is_income ? '↑ Приход' : '↓ Расход'}</button>
+                                            </>}
                                         </div>;
                                     })}
-                                    <button className="Button upload-btn" type="button" onClick={runScenario}>Пересчитать сценарий</button>
+                                    <button className="Button upload-btn" type="button" disabled={!scenarioSelected || isLoading} onClick={runScenario}>{isLoading ? 'Обучение модели…' : 'Перестроить прогноз Prophet'}</button>
                                 </div>}
                             </>}
                         </div>

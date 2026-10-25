@@ -34,6 +34,7 @@ export interface ScheduledPayment {
 }
 
 export interface StatementOperation {
+  id?: number;
   date: string;
   amount: number;
   category: string;
@@ -119,6 +120,7 @@ export const calculateScenario = (pulseId: string, events: Array<{
   is_income: boolean;
   category: string;
 }>, operations: Array<{
+  id?: number;
   date: string;
   amount: number;
   is_income: boolean;
