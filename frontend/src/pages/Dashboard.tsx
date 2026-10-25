@@ -453,7 +453,6 @@ const Dashboard = () => {
                             </div>
                         )}
                         {(forecast.category_report || forecast.payment_calendar?.payments?.length || forecast.recurring_streams?.length) && <div className="MLOverview">
-                            <div className="MLOverview-title">Аналитика ML</div>
                             {forecast.category_report && <div className="MLOverview-section">
                                 <div className="MLOverview-heading">Категории</div>
                                 <div className="MLOverview-meta">{forecast.category_report.operations.toLocaleString('ru-RU')} операций · оборот {forecast.category_report.amount.toLocaleString('ru-RU')} ₽</div>
