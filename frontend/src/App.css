@@ -804,6 +804,13 @@ main {
   color: var(--text);
   border-color: var(--accent);
 }
+.OneCApiCard { padding: 22px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; text-align: left; }
+.OneCApiCard h2 { margin: 0 0 8px; }
+.OneCApiCard p { color: var(--text-muted); font-size: 13px; }
+.OneCApiRow { display: flex; align-items: end; gap: 12px; margin: 14px 0; }
+.OneCApiRow > div { display: grid; gap: 6px; flex: 1; min-width: 0; }
+.OneCApiRow input { width: 100%; min-width: 0; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-input); color: var(--text); }
+@media (max-width: 640px) { .OneCApiRow { align-items: stretch; flex-direction: column; } }
 .OperationHint { margin: 4px 0 0; color: var(--text-muted); font-size: 12px; }
 .OperationForm-choice .operation-income { color: #16834f; }
 .OperationForm-choice .operation-expense { color: #c5304b; }

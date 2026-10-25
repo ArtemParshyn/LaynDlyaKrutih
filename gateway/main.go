@@ -100,6 +100,8 @@ func main() {
 	protected := router.Group("/")
 	protected.Use(auth.AuthMiddleware())
 	{
+		protected.GET("/me/integration/1c", oneCHandler.Settings)
+		protected.POST("/me/integration/1c/regenerate", oneCHandler.Regenerate)
 		// User profile & CRUD (IDOR protected: users can only view/edit/delete themselves)
 		protected.GET("/me", userHandler.GetMe)
 		protected.PATCH("/me", userHandler.UpdateMe)

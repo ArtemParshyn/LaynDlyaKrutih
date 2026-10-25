@@ -278,3 +278,8 @@ export interface RegisterData {
 export interface AuthResponse {
   user: UserInfo;
 }
+
+export interface OneCPulseLink { id: number; name: string; upload_url: string; }
+export interface OneCSettings { token: string; pulses: OneCPulseLink[]; }
+export const getOneCSettings = () => apiClient<OneCSettings>(`${API_URL}/me/integration/1c`, { method: 'GET' });
+export const regenerateOneCSettings = () => apiClient<OneCSettings>(`${API_URL}/me/integration/1c/regenerate`, { method: 'POST' });
