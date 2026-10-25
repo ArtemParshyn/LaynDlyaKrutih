@@ -1175,6 +1175,25 @@ main {
   grid-row: 3 / 4;
   width: 100%;
 }
+.OperationList { width: 100%; }
+.OperationCard {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) 170px;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: nowrap;
+  padding: 14px 18px;
+  border-left: 3px solid var(--border);
+}
+.OperationCard-main { min-width: 0; }
+.OperationCard .GapCard-date { font-size: 13px; white-space: nowrap; }
+.OperationCard .GapCard-note { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.OperationCard .GapCard-sum { min-width: 0; text-align: right; }
+@media (max-width: 640px) {
+  .OperationCard { grid-template-columns: 1fr auto; gap: 8px 14px; }
+  .OperationCard-main { grid-column: 1 / -1; }
+  .OperationCard .GapCard-note { white-space: normal; }
+}
 
 .GridForecast {
   grid-column: 1 / -1;

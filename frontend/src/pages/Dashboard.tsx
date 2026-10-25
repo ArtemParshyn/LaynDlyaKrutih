@@ -450,10 +450,10 @@ const Dashboard = () => {
                     <div className="GridOps">
                         <h3 className="SectionTitle">Последние операции</h3>
                         {(forecast.operations || []).length ? (
-                            <div className="GapList">
+                            <div className="GapList OperationList">
                                 {(forecast.operations || []).slice(0, 10).map((op: StatementOperation, index) => (
-                                    <div key={`${op.date}:${op.description}:${index}`} className="GapCard">
-                                        <div>
+                                    <div key={`${op.date}:${op.description}:${index}`} className="GapCard OperationCard">
+                                        <div className="OperationCard-main">
                                             <div className="GapCard-date">{op.date}</div>
                                             <div className="GapCard-note">
                                                 {op.manual ? 'Добавлено вручную' : (op.category || op.description || 'Без категории')}
