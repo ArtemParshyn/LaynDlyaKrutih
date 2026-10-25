@@ -221,6 +221,7 @@ const Dashboard = () => {
             toast.error('Выберите дату и укажите сумму больше нуля');
             return;
         }
+        setScenarioResult(null);
         setIsLoading(true);
         try {
             const result = await calculateScenario(pulseId, [{
@@ -237,6 +238,9 @@ const Dashboard = () => {
             setIsLoading(false);
         }
     };
+
+    const chartForecast = scenarioResult || forecast;
+    const chartShowBounds = showBounds || Boolean(scenarioResult);
 
     useEffect(() => {
         if (!user || !pulseId) return;
@@ -429,9 +433,8 @@ const Dashboard = () => {
                         )}
 
                         <FinanceChart
-                            showBounds={showBounds}
+                            showBounds={chartShowBounds}
                             onDateClick={handleChartDateClick}
-                            scenarioForecast={scenarioResult?.days?.map((day) => ({ date: day.date, balance: rubles(day.expected_balance) })) || []}
                             history={(forecast.history?.length
                                 ? forecast.history
                                 : [{ date: forecast.days[0].date, balance: forecast.days[0].expected_balance }]
@@ -439,7 +442,7 @@ const Dashboard = () => {
                                 date: point.date,
                                 balance: rubles(point.balance),
                             }))}
-                            forecast={forecast.days.map((day) => ({
+                            forecast={chartForecast.days.map((day) => ({
                                 date: day.date,
                                 balance: rubles(day.expected_balance),
                                 low: rubles(day.balance_low),
