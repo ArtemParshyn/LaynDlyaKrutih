@@ -1182,19 +1182,6 @@ main {
   grid-row: 2 / 3;
   width: 100%;
 }
-.ScenarioTools { width: 100%; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border-soft); text-align: left; }
-.ScenarioTools > .Button.is-active { background: var(--accent); color: white; }
-.ScenarioHint { color: var(--text-muted); font-size: 13px; margin: 10px 0; }
-.ScenarioPresets { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
-.ScenarioPresets .Button { min-width: auto; height: 38px; font-size: 13px; }
-.ScenarioEditor { display: grid; gap: 10px; margin-top: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
-.ScenarioRow { display: grid; grid-template-columns: minmax(0, 1fr) 120px auto; gap: 8px; align-items: center; }
-.ScenarioRow.is-selected { grid-template-columns: 1fr; padding: 10px; border: 1px solid var(--accent); border-radius: 10px; }
-.ScenarioOperationPick { display: grid; gap: 3px; text-align: left; border: 0; background: transparent; color: var(--text); cursor: pointer; padding: 6px; }
-.ScenarioOperationPick small { color: var(--text-muted); }
-.ScenarioRow span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ScenarioRow input { width: 100%; min-width: 0; padding: 9px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-input); color: var(--text); }
-@media (max-width: 640px) { .ScenarioRow { grid-template-columns: 1fr 100px; } .ScenarioRow span { grid-column: 1 / -1; } }
 .GridAdd { align-self: start; }
 .OperationList { width: 100%; }
 .OperationCard {
