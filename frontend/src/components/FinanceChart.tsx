@@ -14,6 +14,7 @@ interface FinanceChartProps {
     history: ChartPoint[];
     forecast: ChartPoint[];
     showBounds?: boolean;
+    onDateClick?: (date: string) => void;
 }
 
 const money = (value: number) => {
@@ -40,7 +41,7 @@ const dayLabel = (value: string) => {
 const levelOf = (point: ChartPoint) =>
     point.balance != null ? point.balance : point.mid;
 
-const FinanceChart = ({ history, forecast, showBounds = false }: FinanceChartProps) => {
+const FinanceChart = ({ history, forecast, showBounds = false, onDateClick }: FinanceChartProps) => {
     const [windowDays, setWindowDays] = useState(90);
     const [dragFrom, setDragFrom] = useState<string | null>(null);
     const [dragTo, setDragTo] = useState<string | null>(null);
@@ -162,6 +163,10 @@ const FinanceChart = ({ history, forecast, showBounds = false }: FinanceChartPro
                             setDragFrom(null);
                             setDragTo(null);
                         }
+                    }}
+                    onClick={(state) => {
+                        const date = state?.activeLabel ? String(state.activeLabel) : null;
+                        if (date) onDateClick?.(date);
                     }}
                 >
                     <defs>

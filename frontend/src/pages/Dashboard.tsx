@@ -198,6 +198,14 @@ const Dashboard = () => {
         }
     };
 
+    const handleChartDateClick = (date: string) => {
+        setOperationDate(date);
+        setOperationOpen(true);
+        window.requestAnimationFrame(() => {
+            document.querySelector('.GridAdd')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+    };
+
     useEffect(() => {
         if (!user || !pulseId) return;
         let stop = false;
@@ -313,7 +321,10 @@ const Dashboard = () => {
                     {/* Карточка бизнеса (Правая колонка, верх) */}
                     <div className="GridAdd">
                         <div className="ChartHead">
-                            <h3 className="SectionTitle">Своя операция</h3>
+                            <div>
+                                <h3 className="SectionTitle">Своя операция</h3>
+                                <p className="OperationHint">Нажмите на график — дата подставится автоматически.</p>
+                            </div>
                         </div>
                         <form className="OperationForm" onSubmit={handleAddOperation}>
                             <label>
@@ -342,8 +353,8 @@ const Dashboard = () => {
                                 />
                             </label>
                             <div className="OperationForm-choice">
-                                <button type="button" className={!operationIncome ? 'is-active' : ''} onClick={() => setOperationIncome(false)}>Расход</button>
-                                <button type="button" className={operationIncome ? 'is-active' : ''} onClick={() => setOperationIncome(true)}>Приход</button>
+                                <button type="button" className={!operationIncome ? 'is-active operation-expense' : 'operation-expense'} onClick={() => setOperationIncome(false)}>↓ Расход</button>
+                                <button type="button" className={operationIncome ? 'is-active operation-income' : 'operation-income'} onClick={() => setOperationIncome(true)}>↑ Приход</button>
                             </div>
                             {operationIsPlan && (
                                 <label className="OperationForm-check">
@@ -403,6 +414,7 @@ const Dashboard = () => {
 
                         <FinanceChart
                             showBounds={showBounds}
+                            onDateClick={handleChartDateClick}
                             history={(forecast.history?.length
                                 ? forecast.history
                                 : [{ date: forecast.days[0].date, balance: forecast.days[0].expected_balance }]

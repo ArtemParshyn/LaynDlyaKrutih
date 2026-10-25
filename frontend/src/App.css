@@ -804,6 +804,11 @@ main {
   color: var(--text);
   border-color: var(--accent);
 }
+.OperationHint { margin: 4px 0 0; color: var(--text-muted); font-size: 12px; }
+.OperationForm-choice .operation-income { color: #16834f; }
+.OperationForm-choice .operation-expense { color: #c5304b; }
+.OperationForm-choice .operation-income.is-active { background: #16834f; color: #fff; border-color: #16834f; }
+.OperationForm-choice .operation-expense.is-active { background: #c5304b; color: #fff; border-color: #c5304b; }
 .OperationForm-check {
   display: flex !important;
   grid-template-columns: none;
