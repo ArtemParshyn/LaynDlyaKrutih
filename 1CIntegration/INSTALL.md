@@ -2,21 +2,21 @@
 
 ## Запуск одной командой
 
-PowerShell из корня проекта:
+Выполнять можно из любой папки PowerShell. Укажите путь к папке файловой базы 1С:
 
 ```powershell
-.\1CIntegration\install-1c.ps1 "D:\projects\LaynDlyaKrutih-1c\1CBase"
+powershell -ExecutionPolicy Bypass -File "D:\projects\LaynDlyaKrutih-1c\1CIntegration\install-1c.ps1" "D:\projects\LaynDlyaKrutih-1c\1CBase" "http://127.0.0.1:3000"
 ```
 
 Или CMD:
 
 ```cmd
-1CIntegration\install-1c.cmd "D:\projects\LaynDlyaKrutih-1c\1CBase"
+1CIntegration\install-1c.cmd "D:\projects\LaynDlyaKrutih-1c\1CBase" "http://127.0.0.1:3000"
 ```
 
-Скрипт откроет `SendStatement.epf` в режиме предприятия для указанной файловой базы. Он не меняет конфигурацию базы и не хранит API-токен внутри неё.
+Скрипт скачает `SendStatement.epf` прямо в папку указанной файловой базы и откроет его в режиме предприятия. Он не меняет конфигурацию базы и не хранит API-токен внутри неё.
 
-## Скачать модуль с сайта одной командой
+## Скачать модуль с сайта отдельной командой
 
 После входа в API-кабинет скачайте `SendStatement.epf` кнопкой «Скачать модуль 1С». Либо выполните в PowerShell:
 
