@@ -1,5 +1,7 @@
 package dto
 
+import "encoding/json"
+
 type HistoryDay struct {
 	Date         string `json:"date"`
 	IrregularIn  int64  `json:"irregular_in"`
@@ -90,6 +92,8 @@ type ForecastResponse struct {
 	RarePayments      []RarePayment      `json:"rare_payments"`
 	Training          *Training          `json:"training,omitempty"`
 	Summary           string             `json:"summary,omitempty"`
+	Risks             json.RawMessage    `json:"risks,omitempty"`
+	Explanations      json.RawMessage    `json:"explanations,omitempty"`
 }
 
 // LedgerData is received from the Ledger (выписка) service

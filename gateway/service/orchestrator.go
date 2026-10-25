@@ -544,9 +544,11 @@ func mapProphet(raw *client.ProphetForecast) *dto.ForecastResponse {
 		})
 	}
 	return &dto.ForecastResponse{
-		Days:    days,
-		Alerts:  alerts,
-		Summary: raw.Summary,
+		Days:          days,
+		Alerts:        alerts,
+		Summary:       raw.Summary,
+		Risks:         raw.Risks,
+		Explanations:  raw.Explanations,
 	}
 }
 

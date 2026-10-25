@@ -63,6 +63,8 @@ export interface ForecastResponse {
   rare_payments?: RarePayment[];
   training?: TrainingStatus;
   summary?: string;
+  risks?: unknown;
+  explanations?: unknown;
 }
 
 const pulseUrl = (pulseId: string, path: string) =>

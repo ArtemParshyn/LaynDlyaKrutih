@@ -49,6 +49,10 @@ class ForecastResponse(BaseModel):
     )
     summary: str = Field(..., description="Вывод простым языком — его можно показать предпринимателю")
     quality: dict = Field(..., description="Метрики на holdout при обучении")
+    # Новая ML-версия возвращает структурированные риски и объяснения.
+    # Оставляем тип гибким для совместимости с list/dict форматами.
+    risks: list | dict | None = None
+    explanations: list | dict | None = None
 
 
 class ModelInfo(BaseModel):

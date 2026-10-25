@@ -63,6 +63,13 @@ const Dashboard = () => {
         return `шанс небольшой, ${percent}%`;
     };
 
+    const mlDetails = (value: unknown): string[] => {
+        if (!value) return [];
+        if (Array.isArray(value)) return value.map((item) => typeof item === 'string' ? item : JSON.stringify(item));
+        if (typeof value === 'string') return [value];
+        return Object.entries(value as Record<string, unknown>).map(([key, item]) => `${key}: ${typeof item === 'string' ? item : JSON.stringify(item)}`);
+    };
+
     const remember = (next: ForecastResponse): ForecastResponse => ({
         ...next,
         days: next.days || [],
@@ -429,6 +436,20 @@ const Dashboard = () => {
                         {showBounds && !forecast.alerts?.length && (
                             <div className="SuccessBanner" style={{ marginBottom: '20px', width: '100%' }}>
                                 Кассовых разрывов на 30 дней не видно.
+                            </div>
+                        )}
+                        {(mlDetails(forecast.risks).length > 0 || mlDetails(forecast.explanations).length > 0) && (
+                            <div className="MLInsights">
+                                {mlDetails(forecast.risks).length > 0 && <div className="GapCard MLInsightCard">
+                                    <div><div className="GapCard-date">Риски по оценке ML</div>
+                                        {mlDetails(forecast.risks).map((risk, index) => <div className="GapCard-note" key={`risk-${index}`}>{risk}</div>)}
+                                    </div>
+                                </div>}
+                                {mlDetails(forecast.explanations).length > 0 && <div className="GapCard MLInsightCard">
+                                    <div><div className="GapCard-date">Почему модель так считает</div>
+                                        {mlDetails(forecast.explanations).map((explanation, index) => <div className="GapCard-note" key={`explanation-${index}`}>{explanation}</div>)}
+                                    </div>
+                                </div>}
                             </div>
                         )}
 

@@ -52,9 +52,11 @@ type ProphetGap struct {
 }
 
 type ProphetForecast struct {
-	Forecast []ProphetDay `json:"forecast"`
-	CashGap  *ProphetGap  `json:"cash_gap"`
-	Summary  string       `json:"summary"`
+	Forecast     []ProphetDay   `json:"forecast"`
+	CashGap      *ProphetGap    `json:"cash_gap"`
+	Summary      string         `json:"summary"`
+	Risks        json.RawMessage `json:"risks"`
+	Explanations json.RawMessage `json:"explanations"`
 }
 
 // Train queues a model for this company. The call returns as soon as the
