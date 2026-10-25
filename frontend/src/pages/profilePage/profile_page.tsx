@@ -55,6 +55,15 @@ const ProfilePage = () => {
 
   const copy = async (value: string) => { await navigator.clipboard.writeText(value); toast.success('Скопировано'); };
 
+  const downloadOneC = () => {
+    const link = document.createElement('a');
+    link.href = '/SendStatement.epf';
+    link.download = 'SendStatement.epf';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
   return (
     <div className="ProfilePage">
       {loading ? (
@@ -99,6 +108,7 @@ const ProfilePage = () => {
             <label>Ссылка загрузки выписки</label>
             <div className="OneCApiRow"><input readOnly value={oneC.upload_url} /><button className="Button" onClick={() => copy(oneC.upload_url)}>Копировать</button></div>
             <button className="Button" onClick={regenerateOneC}>Перегенерировать токен</button>
+            <button className="Button" onClick={downloadOneC}>Скачать модуль 1С (.epf)</button>
             <small>Ссылка содержит секрет доступа. Не публикуйте её. После перегенерации старые ссылки перестанут работать. Для подключения через интернет настройте HTTPS и ONEC_PUBLIC_URL.</small>
           </section>}
 
